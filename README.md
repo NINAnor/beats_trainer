@@ -10,7 +10,7 @@ We attempt to solve this by building a streamlined library for training and usin
 
 ```bash
 # Install from GitHub
-pip install git+https://github.com/benjamin-cretois/beats-trainer.git
+pip install git+https://github.com/ninanor/beats-trainer.git
 
 # Test the installation
 python -c "

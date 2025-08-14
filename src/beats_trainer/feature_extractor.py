@@ -8,12 +8,16 @@ import numpy as np
 import librosa
 
 # Import BEATs
-import sys
-import os
+try:
+    # Try relative import for installed package
+    from ..BEATs.BEATs import BEATs, BEATsConfig
+except ImportError:
+    # Fallback for development/direct execution
+    import sys
+    import os
 
-# Now BEATs is in the same src directory
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from BEATs.BEATs import BEATs, BEATsConfig
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from BEATs.BEATs import BEATs, BEATsConfig
 
 # Import checkpoint utilities
 from .checkpoint_utils import ensure_checkpoint

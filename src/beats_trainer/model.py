@@ -10,11 +10,16 @@ import pytorch_lightning as pl
 from .config import Config
 
 # Import BEATs - this should point to your BEATs implementation
-import sys
-import os
+try:
+    # Try relative import for installed package
+    from ..BEATs.BEATs import BEATs, BEATsConfig
+except ImportError:
+    # Fallback for development/direct execution
+    import sys
+    import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from BEATs.BEATs import BEATs, BEATsConfig
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from BEATs.BEATs import BEATs, BEATsConfig
 
 
 class BEATsLightningModule(pl.LightningModule):

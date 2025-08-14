@@ -73,7 +73,7 @@ Issues = "https://github.com/benjamin-cretois/beats-trainer/issues"
 Repository = "https://github.com/benjamin-cretois/beats-trainer"
 
 [tool.hatch.build.targets.wheel]
-sources = ["src"]
+packages = ["src/beats_trainer", "src/BEATs"]
 
 [tool.pytest.ini_options]
 markers = [
