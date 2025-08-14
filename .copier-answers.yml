@@ -1,0 +1,16 @@
+# Changes here will be overwritten by Copier
+_commit: v0.2.5
+_src_path: gh:ninanor/python-template
+author_name: benjamin cretois
+debug: false
+default_branch_name: main
+docker: false
+email: benjamin.cretois@nina.no
+notebook: true
+notebook_type: jupyter
+project_name: beats_trainer
+project_slug: beats_trainer
+repo_name: beats_trainer
+repo_org: ninanor
+template_type: python
+type_annotations: false

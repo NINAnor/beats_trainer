@@ -1,0 +1,385 @@
+"""Main BEATs Trainer class providing a simple API for training."""
+
+from pathlib import Path
+from typing import Optional, Union, Dict, Any
+
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    LearningRateMonitor,
+)
+from pytorch_lightning.loggers import TensorBoardLogger
+
+from .config import Config
+from .datasets import load_dataset, validate_dataset, PRESET_LOADERS
+from .data_module import BEATsDataModule
+from .model import BEATsLightningModule
+from .feature_extractor import BEATsFeatureExtractor
+
+
+class BEATsTrainer:
+    """
+    Main trainer class for BEATs audio classification.
+
+    This class provides a simple, high-level API for training BEATs models
+    on custom audio classification datasets.
+
+    Examples:
+        # Train from directory structure
+        trainer = BEATsTrainer.from_directory("/path/to/dataset")
+        trainer.train()
+
+        # Train from CSV
+        trainer = BEATsTrainer.from_csv("/path/to/metadata.csv", data_dir="/path/to/audio")
+        trainer.train()
+
+        # Advanced configuration
+        config = TrainingConfig(learning_rate=1e-4, max_epochs=100)
+        trainer = BEATsTrainer.from_directory("/path/to/dataset", config=config)
+        trainer.train()
+    """
+
+    def __init__(
+        self,
+        dataset: pd.DataFrame,
+        data_dir: Union[str, Path],
+        config: Optional[Config] = None,
+        experiment_name: Optional[str] = None,
+        log_dir: Optional[str] = None,
+    ):
+        """
+        Initialize BEATsTrainer.
+
+        Args:
+            dataset: DataFrame with 'filename' and 'category' columns
+            data_dir: Root directory containing audio files
+            config: Training configuration
+            experiment_name: Name for the experiment
+            log_dir: Directory to save logs and checkpoints
+        """
+        self.dataset = dataset
+        self.data_dir = Path(data_dir)
+        self.config = config or Config()
+
+        if experiment_name:
+            self.config.experiment_name = experiment_name
+
+        self.log_dir = Path(log_dir) if log_dir else Path("logs")
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Validate dataset
+        self.dataset_stats = validate_dataset(self.dataset, self.data_dir)
+
+        # Set number of classes
+        if self.config.model.num_classes is None:
+            self.config.model.num_classes = self.dataset_stats["num_classes"]
+
+        # Initialize components
+        self._setup_components()
+
+    def _setup_components(self):
+        """Setup PyTorch Lightning components."""
+        # Set random seed
+        pl.seed_everything(self.config.seed, workers=True)
+
+        # Data module
+        self.data_module = BEATsDataModule(
+            dataset=self.dataset,
+            data_dir=self.data_dir,
+            config=self.config.data,
+        )
+
+        # Model
+        self.model = BEATsLightningModule(
+            config=self.config,
+            num_classes=self.config.model.num_classes,
+        )
+
+        # Callbacks
+        self.callbacks = self._setup_callbacks()
+
+        # Logger
+        self.logger = TensorBoardLogger(
+            save_dir=str(self.log_dir),
+            name=self.config.experiment_name,
+            version=None,
+        )
+
+        # Trainer
+        self.trainer = pl.Trainer(
+            max_epochs=self.config.training.max_epochs,
+            devices="auto" if torch.cuda.is_available() else "cpu",
+            accelerator="gpu" if torch.cuda.is_available() else "cpu",
+            precision=self.config.training.precision,
+            callbacks=self.callbacks,
+            logger=self.logger,
+            log_every_n_steps=self.config.training.log_every_n_steps,
+            default_root_dir=str(self.log_dir),
+            deterministic=True,
+            enable_progress_bar=True,
+            enable_model_summary=True,
+        )
+
+    def _setup_callbacks(self):
+        """Setup PyTorch Lightning callbacks."""
+        callbacks = []
+
+        # Model checkpoint
+        checkpoint_callback = ModelCheckpoint(
+            monitor=self.config.training.monitor_metric,
+            mode="max" if "acc" in self.config.training.monitor_metric else "min",
+            save_top_k=self.config.training.save_top_k,
+            save_last=True,
+            filename=f"{self.config.experiment_name}-{{epoch:02d}}-{{{self.config.training.monitor_metric}:.3f}}",
+        )
+        callbacks.append(checkpoint_callback)
+
+        # Early stopping
+        early_stop_callback = EarlyStopping(
+            monitor=self.config.training.monitor_metric,
+            patience=self.config.training.patience,
+            mode="max" if "acc" in self.config.training.monitor_metric else "min",
+            verbose=True,
+        )
+        callbacks.append(early_stop_callback)
+
+        # Learning rate monitor
+        lr_monitor = LearningRateMonitor(logging_interval="step")
+        callbacks.append(lr_monitor)
+
+        return callbacks
+
+    def train(self, resume_from_checkpoint: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Train the model.
+
+        Args:
+            resume_from_checkpoint: Path to checkpoint to resume from
+
+        Returns:
+            Dictionary with training results
+        """
+        print(f"Starting training for experiment: {self.config.experiment_name}")
+        print(
+            f"Dataset: {self.dataset_stats['total_samples']} samples, {self.dataset_stats['num_classes']} classes"
+        )
+        print(f"Model: BEATs with {self.config.model.num_classes} output classes")
+        print(
+            f"Training config: {self.config.training.max_epochs} epochs, LR={self.config.training.learning_rate}"
+        )
+
+        # Save configuration
+        config_path = self.log_dir / self.config.experiment_name / "config.yaml"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        self.config.to_yaml(str(config_path))
+
+        # Train
+        self.trainer.fit(
+            self.model,
+            datamodule=self.data_module,
+            ckpt_path=resume_from_checkpoint,
+        )
+
+        # Test on best model
+        test_results = self.trainer.test(datamodule=self.data_module, ckpt_path="best")
+
+        results = {
+            "best_checkpoint": self.callbacks[0].best_model_path,
+            "best_score": self.callbacks[0].best_model_score.item(),
+            "test_results": test_results[0] if test_results else None,
+            "dataset_stats": self.dataset_stats,
+        }
+
+        print(
+            f"Training completed! Best {self.config.training.monitor_metric}: {results['best_score']:.4f}"
+        )
+
+        return results
+
+    def test(self, checkpoint_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Test the model.
+
+        Args:
+            checkpoint_path: Path to checkpoint, uses best if None
+
+        Returns:
+            Test results dictionary
+        """
+        if checkpoint_path is None:
+            checkpoint_path = "best"
+
+        test_results = self.trainer.test(
+            datamodule=self.data_module,
+            ckpt_path=checkpoint_path,
+        )
+
+        return test_results[0] if test_results else {}
+
+    def predict(
+        self, audio_paths: Union[str, list], checkpoint_path: Optional[str] = None
+    ):
+        """
+        Make predictions on new audio files.
+
+        Args:
+            audio_paths: Path to audio file or list of paths
+            checkpoint_path: Path to model checkpoint
+
+        Returns:
+            Predictions
+        """
+        if isinstance(audio_paths, str):
+            audio_paths = [audio_paths]
+
+        # Load model from checkpoint
+        if checkpoint_path is None:
+            checkpoint_path = self.callbacks[0].best_model_path
+
+        model = BEATsLightningModule.load_from_checkpoint(checkpoint_path)
+        model.eval()
+
+        # TODO: Implement prediction logic
+        raise NotImplementedError("Prediction functionality coming soon!")
+
+    def extract_features(
+        self,
+        audio_paths: Union[str, list, Path],
+        checkpoint_path: Optional[str] = None,
+        pooling: str = "mean",
+        normalize: bool = True,
+        batch_size: int = 16,
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Extract features from audio files using trained BEATs model.
+
+        Args:
+            audio_paths: Path to audio file or list of paths
+            checkpoint_path: Path to model checkpoint (uses best if None)
+            pooling: Pooling method ("mean", "max", "first", "last", "none")
+            normalize: Whether to normalize features
+            batch_size: Batch size for processing multiple files
+            **kwargs: Additional arguments
+
+        Returns:
+            Feature array (num_files, feature_dim) or (feature_dim,) for single file
+        """
+        # Use pretrained model if no checkpoint specified
+        if checkpoint_path is None:
+            checkpoint_path = self.config.model.model_path
+
+        # Create feature extractor
+        extractor = BEATsFeatureExtractor(
+            model_path=checkpoint_path,
+            pooling=pooling,
+        )
+
+        if isinstance(audio_paths, (str, Path)):
+            return extractor.extract_from_file(
+                audio_paths, normalize=normalize, **kwargs
+            )
+        else:
+            return extractor.extract_from_files(
+                audio_paths, batch_size=batch_size, normalize=normalize, **kwargs
+            )
+
+    def get_feature_extractor(
+        self, checkpoint_path: Optional[str] = None, **kwargs
+    ) -> BEATsFeatureExtractor:
+        """
+        Get a standalone feature extractor instance.
+
+        Args:
+            checkpoint_path: Path to model checkpoint (uses pretrained if None)
+            **kwargs: Additional arguments for BEATsFeatureExtractor
+
+        Returns:
+            BEATsFeatureExtractor instance
+        """
+        if checkpoint_path is None:
+            checkpoint_path = self.config.model.model_path
+
+        return BEATsFeatureExtractor(model_path=checkpoint_path, **kwargs)
+
+    @classmethod
+    def from_directory(
+        cls, data_dir: Union[str, Path], config: Optional[Config] = None, **kwargs
+    ) -> "BEATsTrainer":
+        """
+        Create trainer from directory structure.
+
+        Args:
+            data_dir: Directory with class subdirectories
+            config: Training configuration
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance
+        """
+        dataset = load_dataset(data_dir, dataset_type="directory")
+        return cls(dataset=dataset, data_dir=data_dir, config=config, **kwargs)
+
+    @classmethod
+    def from_csv(
+        cls,
+        csv_path: Union[str, Path],
+        data_dir: Union[str, Path],
+        config: Optional[Config] = None,
+        audio_column: str = "filename",
+        label_column: str = "category",
+        **kwargs,
+    ) -> "BEATsTrainer":
+        """
+        Create trainer from CSV metadata.
+
+        Args:
+            csv_path: Path to CSV file
+            data_dir: Directory containing audio files
+            config: Training configuration
+            audio_column: Name of audio filename column
+            label_column: Name of label column
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance
+        """
+        dataset = load_dataset(
+            csv_path,
+            dataset_type="csv",
+            audio_column=audio_column,
+            label_column=label_column,
+        )
+        return cls(dataset=dataset, data_dir=data_dir, config=config, **kwargs)
+
+    @classmethod
+    def from_preset(
+        cls,
+        preset_name: str,
+        data_dir: Union[str, Path],
+        config: Optional[Config] = None,
+        **kwargs,
+    ) -> "BEATsTrainer":
+        """
+        Create trainer using preset dataset loader.
+
+        Args:
+            preset_name: Name of preset ("esc50", "urbansound8k")
+            data_dir: Directory containing dataset
+            config: Training configuration
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance
+        """
+        if preset_name not in PRESET_LOADERS:
+            raise ValueError(
+                f"Unknown preset: {preset_name}. Available: {list(PRESET_LOADERS.keys())}"
+            )
+
+        dataset = PRESET_LOADERS[preset_name](data_dir)
+        return cls(dataset=dataset, data_dir=data_dir, config=config, **kwargs)

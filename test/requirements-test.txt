@@ -1,0 +1,30 @@
+# Test requirements for BEATs library
+
+# Core testing framework
+pytest>=7.0.0
+pytest-mock>=3.10.0
+
+# Test utilities
+pytest-cov>=4.0.0  # Coverage reporting
+pytest-xdist>=3.0.0  # Parallel test execution
+pytest-timeout>=2.1.0  # Test timeouts
+
+# Mocking and fixtures
+responses>=0.22.0  # HTTP request mocking
+
+# Performance testing
+psutil>=5.9.0  # System resource monitoring
+memory-profiler>=0.60.0  # Memory usage tracking
+
+# Audio testing utilities (optional)
+soundfile>=0.12.0  # Audio file I/O for testing
+librosa>=0.9.0  # Audio processing for test data generation
+
+# Scientific computing (should already be available)
+numpy>=1.21.0
+scipy>=1.8.0
+scikit-learn>=1.1.0
+
+# Deep learning (should already be available)
+torch>=1.11.0
+torchaudio>=0.11.0

@@ -1,0 +1,39 @@
+# Include documentation and configuration files
+include README.md
+include LICENSE
+include pyproject.toml
+include uv.lock
+
+# Include source code (now all in src/)
+recursive-include src *.py
+
+# Include example notebooks and documentation
+recursive-include notebooks *.ipynb
+recursive-include notebooks *.md
+recursive-include BEATs_explained *.md
+
+# Include example scripts
+recursive-include example_scripts *.py
+
+# Include test files
+recursive-include test *.py
+include test/requirements-test.txt
+
+# Include installation test script
+include test_installation.py
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .pytest_cache
+global-exclude .coverage
+global-exclude *.so
+global-exclude *.egg-info
+
+# Exclude checkpoints (too large for package)
+exclude checkpoints/*
+global-exclude *.pt
+global-exclude *.pth
+global-exclude *.ckpt

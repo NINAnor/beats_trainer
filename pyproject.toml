@@ -1,0 +1,81 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+authors = [
+  {name = "Benjamin Cretois", email = "benjamin.cretois@nina.no"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Multimedia :: Sound/Audio :: Analysis"
+]
+dependencies = [
+  "torch>=1.11.0",
+  "torchaudio>=0.11.0",
+  "pytorch-lightning>=1.9.0",
+  "torchmetrics>=0.11.0",
+  "librosa>=0.9.0",
+  "soundfile>=0.10.0",
+  "pandas>=1.3.0",
+  "numpy>=1.19.0",
+  "scikit-learn>=1.0.0",
+  "pyyaml>=6.0",
+  "seaborn>=0.13.2",
+  "tensorboard>=2.14.0",
+  "umap-learn>=0.5.0",
+  "requests>=2.25.0"
+]
+description = "A streamlined library for training and using BEATs (Bidirectional Encoder representation from Audio Transformers) models on audio classification tasks"
+keywords = ["audio", "classification", "transformer", "BEATs", "machine-learning", "pytorch"]
+license = {text = "MIT"}
+maintainers = [
+  {name = "Benjamin Cretois", email = "benjamin.cretois@nina.no"}
+]
+name = "beats-trainer"
+readme = "README.md"
+requires-python = ">=3.8"
+version = "0.1.0"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.5",
+  "pytest-cov>=4.0.0",
+  "black>=22.0.0",
+  "isort>=5.0.0",
+  "flake8>=4.0.0"
+]
+notebooks = [
+  "jupyter>=1.0.0",
+  "ipykernel>=6.0.0",
+  "matplotlib>=3.5.0",
+  "seaborn>=0.11.0",
+  "umap-learn>=0.5.0",
+  "plotly>=5.0.0"
+]
+
+[project.scripts]
+beats-train = "beats_trainer.cli:main"
+
+[project.urls]
+Documentation = "https://github.com/benjamin-cretois/beats-trainer/tree/main/BEATs_explained"
+Homepage = "https://github.com/benjamin-cretois/beats-trainer"
+Issues = "https://github.com/benjamin-cretois/beats-trainer/issues"
+Repository = "https://github.com/benjamin-cretois/beats-trainer"
+
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
