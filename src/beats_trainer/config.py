@@ -84,6 +84,9 @@ class TrainingConfig:
     gpus: int = 1 if __import__("torch").cuda.is_available() else 0
     precision: int = 32
 
+    # Training reproducibility
+    deterministic: bool = False
+
     # Logging
     log_every_n_steps: int = 50
     save_top_k: int = 3

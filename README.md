@@ -6,6 +6,17 @@ We attempt to solve this by building a streamlined library for training and usin
 
 ## 🚀 Quick Start
 
+### 📚 Try the Interactive Notebooks (Recommended)
+
+**New to BEATs?** Start with our beginner-friendly notebooks:
+
+- **[🎵 Quick Start: Feature Extraction](notebooks/Quick_Start_Feature_Extraction.ipynb)** (5 min) - Extract audio features immediately
+- **[🎯 Quick Start: Training](notebooks/Quick_Start_Training.ipynb)** (15 min) - Train on your own data
+
+**More advanced?** Check out the detailed analysis notebooks:
+- [Advanced Feature Analysis](notebooks/Advanced_Feature_Extraction_Analysis.ipynb) - In-depth comparisons and visualizations
+- [Advanced Training Tutorial](notebooks/Advanced_ESC50_Fine_Tuning.ipynb) - Complete ESC-50 walkthrough
+
 ### Install and Test
 
 ```bash
@@ -18,7 +29,7 @@ uv add git+https://github.com/ninanor/beats-trainer.git
 - **🤖 Automatic Checkpoint Management**: Download BEATs models automatically
 - **📊 Feature Extraction**: Extract high-quality audio embeddings
 - **🔧 Simple Training API**: Fine-tune BEATs with just a few lines of code
-- **📚 Comprehensive Notebooks**: Step-by-step tutorials and examples
+- **📚 Comprehensive Notebooks**: Step-by-step tutorials for beginners and advanced users
 - **⚡ GPU Support**: Automatic CUDA detection and optimization
 
 ## 🎯 Usage Examples

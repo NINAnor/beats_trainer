@@ -1,5 +1,6 @@
 """Main BEATs Trainer class providing a simple API for training."""
 
+import os
 from pathlib import Path
 from typing import Optional, Union, Dict, Any
 
@@ -95,6 +96,9 @@ class BEATsTrainer:
         """Setup PyTorch Lightning components."""
         # Set random seed
         pl.seed_everything(self.config.seed, workers=True)
+        
+        # Configure deterministic behavior for CUDA if needed
+        self._configure_deterministic_mode()
 
         # Data module
         self.data_module = BEATsDataModule(
@@ -129,10 +133,21 @@ class BEATsTrainer:
             logger=self.logger,
             log_every_n_steps=self.config.training.log_every_n_steps,
             default_root_dir=str(self.log_dir),
-            deterministic=True,
+            deterministic=getattr(self.config.training, 'deterministic', False),
             enable_progress_bar=True,
             enable_model_summary=True,
         )
+
+    def _configure_deterministic_mode(self):
+        """Configure deterministic behavior for reproducible results."""
+        deterministic = getattr(self.config.training, 'deterministic', False)
+        
+        if deterministic and torch.cuda.is_available():
+            # Set CUBLAS workspace config for deterministic CuBLAS operations
+            # This is required when using deterministic=True with CUDA >= 10.2
+            if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
+                os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+                print("Set CUBLAS_WORKSPACE_CONFIG=:4096:8 for deterministic CUDA operations")
 
     def _setup_callbacks(self):
         """Setup PyTorch Lightning callbacks."""
@@ -181,6 +196,9 @@ class BEATsTrainer:
         print(
             f"Training config: {self.config.training.max_epochs} epochs, LR={self.config.training.learning_rate}"
         )
+
+        # Configure deterministic mode for CUDA
+        self._configure_deterministic_mode()
 
         # Save configuration
         config_path = self.log_dir / self.config.experiment_name / "config.yaml"
