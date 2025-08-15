@@ -197,3 +197,4 @@ notebooks/ESC-50-master/
 notebooks/ESC50_organized/
 .vscode
 /checkpoints
+.secrets

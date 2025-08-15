@@ -1,4 +1,4 @@
-# BEATs on ESC-50: A Simple Audio Classification Library
+# beats_trainer: A high level API for training BEATs
 
 [BEATs (Bidirectional Encoder representation from Audio Transformers)](https://github.com/microsoft/unilm/tree/master/beats) is a very powerful audio classification model and perform state-of-the-art results. However it has proven difficult to train due to model complexity as well as a lack of documentation.
 
@@ -10,15 +10,7 @@ We attempt to solve this by building a streamlined library for training and usin
 
 ```bash
 # Install from GitHub
-pip install git+https://github.com/ninanor/beats-trainer.git
-
-# Test the installation
-python -c "
-from beats_trainer import BEATsFeatureExtractor
-extractor = BEATsFeatureExtractor()
-print('✅ BEATs Trainer installed successfully!')
-print(f'Feature dimension: {extractor.get_feature_dim()}')
-"
+uv add git+https://github.com/ninanor/beats-trainer.git
 ```
 
 ## ✨ Key Features
@@ -36,8 +28,13 @@ print(f'Feature dimension: {extractor.get_feature_dim()}')
 ```python
 from beats_trainer import BEATsFeatureExtractor
 
-# Automatically downloads model if needed
+# Use default model (BEATs_iter3_plus_AS2M - recommended)
 extractor = BEATsFeatureExtractor()
+
+# OR download a specific model first:
+from beats_trainer import download_beats_checkpoint
+checkpoint_path = download_beats_checkpoint("openbeats")  # Alternative model
+extractor = BEATsFeatureExtractor(model_path=checkpoint_path)
 
 # Extract features from audio file
 features = extractor.extract_from_file("audio.wav")
@@ -61,8 +58,6 @@ print(models.keys())  # ['BEATs_iter3_plus_AS2M', 'openbeats']
 checkpoint_path = ensure_checkpoint()
 print(f"Checkpoint ready at: {checkpoint_path}")
 ```
-
-**🚀 Automatic Downloads**: Checkpoints are automatically downloaded from [Hugging Face Hub](https://huggingface.co/datasets/ninanor/beats-checkpoints) - no OneDrive tokens required!
 
 ### Fine-tuning on Custom Data
 
@@ -222,27 +217,6 @@ df = load_csv_dataset("your_data.csv", audio_col="filename", label_col="category
 - ✅ **Sufficient data**: At least 20-50 examples per class for fine-tuning
 - ✅ **Representative samples**: Cover the variation you expect in real-world usage
 
-**Example Data Validation:**
-```python
-from beats_trainer.datasets import validate_dataset
-
-# Validate your dataset (works with DataFrame + data directory)
-df = scan_directory_dataset("path/to/dataset")
-validation_report = validate_dataset(df, "path/to/dataset")
-
-if validation_report["warnings"]:
-    print("⚠️ Warnings found:")
-    for warning in validation_report["warnings"]:
-        print(f"  - {warning}")
-
-if validation_report["errors"]:
-    print("❌ Errors found:")
-    for error in validation_report["errors"]:
-        print(f"  - {error}")
-else:
-    print("✅ Dataset validation passed!")
-```
-
 ## Ideas for usage
 
 ### 🔍 Audio Search & Similarity
@@ -291,26 +265,12 @@ extractors = {
 }
 ```
 
-### Training Configuration
-```python
-from beats_trainer.config import TrainingConfig
-
-config = TrainingConfig(
-    learning_rate=1e-4,
-    max_epochs=50,
-    batch_size=32,
-    optimizer="adamw"
-)
-
-trainer = BEATsTrainer.from_directory("/path/to/data", config=config)
-```
-
 ## 📜 License
 
-This project is licensed under the MIT License. The BEATs model weights are provided by Microsoft Research under their respective license.
+This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+BEATs_iter3_plus_AS2M.pt model weights are provided by Microsoft Research under their respective license terms (MIT). These can be found in their [GitHub repository](https://github.com/microsoft/unilm/tree/master/beats)
 
-- **BEATs**: [Microsoft Research](https://github.com/microsoft/unilm/tree/master/beats)
+OpenBEATs-Base-i3.pt model weights are provided by the OpenBEATs project under their respective license terms. More details can be found in the [OpenBEATs paper](https://arxiv.org/pdf/2507.14129)
 
 ---

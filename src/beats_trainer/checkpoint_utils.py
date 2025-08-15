@@ -58,12 +58,13 @@ def download_from_huggingface(
     try:
         print(f"Downloading {filename} from {repo_id}...")
 
-        # Use HF Hub to download
+        # Use HF Hub to download from dataset repository
         downloaded_path = hf_hub_download(
             repo_id=repo_id,
             filename=filename,
             cache_dir=cache_dir,
             force_download=force_download,
+            repo_type="dataset",  # Specify that this is a dataset repository
         )
 
         print(f"✓ Download complete: {downloaded_path}")

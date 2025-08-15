@@ -730,6 +730,8 @@ name = "beats-trainer"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "dvc", version = "3.42.0", source = { registry = "https://pypi.org/simple" }, extra = ["webdav"], marker = "python_full_version < '3.9'" },
+    { name = "dvc", version = "3.62.0", source = { registry = "https://pypi.org/simple" }, extra = ["webdav"], marker = "python_full_version >= '3.9'" },
     { name = "huggingface-hub" },
     { name = "librosa" },
     { name = "numpy", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -791,6 +793,7 @@ notebooks = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=22.0.0" },
     { name = "dvc", marker = "extra == 'dev'", specifier = ">=3.0.0" },
+    { name = "dvc", extras = ["webdav"], specifier = ">=3.0.0" },
     { name = "dvc", extras = ["webdav"], marker = "extra == 'dev'", specifier = ">=3.0.0" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "huggingface-hub", specifier = ">=0.17.0" },

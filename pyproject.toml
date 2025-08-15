@@ -34,7 +34,8 @@ dependencies = [
   "tensorboard>=2.14.0",
   "umap-learn>=0.5.0",
   "requests>=2.25.0",
-  "huggingface-hub>=0.17.0"
+  "huggingface-hub>=0.17.0",
+  "dvc[webdav]>=3.0.0"
 ]
 description = "A streamlined library for training and using BEATs (Bidirectional Encoder representation from Audio Transformers) models on audio classification tasks"
 keywords = ["audio", "classification", "transformer", "BEATs", "machine-learning", "pytorch"]
