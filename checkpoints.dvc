@@ -1,7 +1,6 @@
 outs:
-- md5: null
-  size: null
-  path: BEATs_iter3_plus_AS2M.pt
-- md5: null  
-  size: null
-  path: openbeats.pt
+- md5: 2d974a570a7d2b8061c88b7ea0278a99.dir
+  size: 722998643
+  nfiles: 2
+  hash: md5
+  path: checkpoints
