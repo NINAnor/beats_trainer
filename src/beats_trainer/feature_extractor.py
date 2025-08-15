@@ -25,18 +25,23 @@ from .checkpoint_utils import ensure_checkpoint
 
 class BEATsFeatureExtractor:
     """
-    Feature extractor for BEATs model.
+    Standalone feature extractor for BEATs model.
 
-    This class provides functionality to extract features from audio using
-    a pretrained BEATs model, without requiring the full training pipeline.
+    This class provides functionality to extract high-quality audio features using
+    pretrained or custom-trained BEATs models. It operates independently and does
+    not require the training pipeline.
+
+    🎯 **Purpose**: Audio feature extraction and embedding generation
+    🔗 **Independence**: Fully standalone - no dependency on BEATsTrainer
+    📦 **Models**: Automatically downloads pretrained models from Hugging Face Hub
 
     Examples:
-        # Basic feature extraction (auto-downloads model if needed)
+        # Basic feature extraction (auto-downloads pretrained model)
         extractor = BEATsFeatureExtractor()
         features = extractor.extract_from_file("audio.wav")
 
-        # Specify model path
-        extractor = BEATsFeatureExtractor("checkpoints/BEATs_iter3_plus_AS2M.pt")
+        # Specify custom model path
+        extractor = BEATsFeatureExtractor("path/to/custom_model.pt")
         features = extractor.extract_from_file("audio.wav")
 
         # Batch processing
@@ -44,6 +49,11 @@ class BEATsFeatureExtractor:
 
         # Extract from numpy array
         features = extractor.extract_from_array(audio_array, sample_rate=16000)
+
+        # Use with trained model from BEATsTrainer
+        trainer = BEATsTrainer.from_directory("/path/to/data")
+        trainer.train()
+        extractor = trainer.get_feature_extractor()  # Convenience method
     """
 
     def __init__(

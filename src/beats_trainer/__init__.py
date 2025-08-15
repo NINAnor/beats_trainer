@@ -4,7 +4,7 @@ __version__ = "0.1.0"
 __author__ = "Benjamin Cretois"
 __email__ = "benjamin.cretois@nina.no"
 
-# Core components - import the main classes and functions users need
+# Core feature extraction (always available)
 from .feature_extractor import BEATsFeatureExtractor
 from .checkpoint_utils import (
     ensure_checkpoint,
@@ -12,44 +12,17 @@ from .checkpoint_utils import (
     download_beats_checkpoint,
     find_checkpoint,
     validate_checkpoint,
+    get_model_info,
 )
 
-# Optional imports (only if dependencies are available)
+# Training components (optional - only if dependencies are available)
 try:
     from .trainer import BEATsTrainer
 
     _TRAINING_AVAILABLE = True
 except ImportError:
+    BEATsTrainer = None  # Avoid unused import warning
     _TRAINING_AVAILABLE = False
-
-_CONFIG_AVAILABLE = True
-
-# Public API - what users get when they do `from beats_trainer import *`
-__all__ = [
-    # Version info
-    "__version__",
-    # Core feature extraction (always available)
-    "BEATsFeatureExtractor",
-    # Checkpoint management
-    "ensure_checkpoint",
-    "list_available_models",
-    "download_beats_checkpoint",
-    "find_checkpoint",
-    "validate_checkpoint",
-]
-
-# Add training components if available
-if _TRAINING_AVAILABLE:
-    __all__.extend(
-        [
-            "BEATsTrainer",
-            "BEATsDataModule",
-            "BEATsClassifier",
-        ]
-    )
-
-if _CONFIG_AVAILABLE:
-    __all__.append("TrainingConfig")
 
 # Package metadata
 __title__ = "beats-trainer"
@@ -57,12 +30,22 @@ __summary__ = "A streamlined library for training and using BEATs models on audi
 __uri__ = "https://github.com/benjamin-cretois/beats-trainer"
 __license__ = "MIT"
 __copyright__ = "Copyright 2024-2025 Benjamin Cretois"
+
+# Public API - what users get when they import the package
 __all__ = [
-    "BEATsTrainer",
+    # Version info
+    "__version__",
+    # Core feature extraction (always available)
     "BEATsFeatureExtractor",
-    "download_beats_checkpoint",
+    # Checkpoint management utilities
     "ensure_checkpoint",
     "list_available_models",
+    "download_beats_checkpoint",
     "find_checkpoint",
+    "validate_checkpoint",
     "get_model_info",
 ]
+
+# Add training components if available
+if _TRAINING_AVAILABLE:
+    __all__.append("BEATsTrainer")
