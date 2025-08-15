@@ -1,0 +1,9 @@
+[core]
+    analytics = false
+    remote = huggingface
+    
+['remote "huggingface"']
+    url = https://huggingface.co/datasets/Bencr/beats-checkpoints
+    
+[machine]
+    cloud = huggingface

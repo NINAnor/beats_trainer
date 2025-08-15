@@ -55,12 +55,14 @@ from beats_trainer import ensure_checkpoint, list_available_models
 
 # List available models
 models = list_available_models()
-print(models.keys())  # At the moment ['BEATs_iter3_plus_AS2M']
+print(models.keys())  # ['BEATs_iter3_plus_AS2M', 'openbeats']
 
-# Ensure checkpoint is available (downloads if needed)
+# Ensure checkpoint is available (automatically downloads from Hugging Face Hub)
 checkpoint_path = ensure_checkpoint()
 print(f"Checkpoint ready at: {checkpoint_path}")
 ```
+
+**🚀 Automatic Downloads**: Checkpoints are automatically downloaded from [Hugging Face Hub](https://huggingface.co/datasets/ninanor/beats-checkpoints) - no OneDrive tokens required!
 
 ### Fine-tuning on Custom Data
 

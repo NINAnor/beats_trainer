@@ -33,7 +33,8 @@ dependencies = [
   "seaborn>=0.13.2",
   "tensorboard>=2.14.0",
   "umap-learn>=0.5.0",
-  "requests>=2.25.0"
+  "requests>=2.25.0",
+  "huggingface-hub>=0.17.0"
 ]
 description = "A streamlined library for training and using BEATs (Bidirectional Encoder representation from Audio Transformers) models on audio classification tasks"
 keywords = ["audio", "classification", "transformer", "BEATs", "machine-learning", "pytorch"]
@@ -52,7 +53,9 @@ dev = [
   "pytest-cov>=4.0.0",
   "black>=22.0.0",
   "isort>=5.0.0",
-  "flake8>=4.0.0"
+  "flake8>=4.0.0",
+  "dvc>=3.0.0",
+  "dvc[webdav]>=3.0.0"
 ]
 notebooks = [
   "jupyter>=1.0.0",

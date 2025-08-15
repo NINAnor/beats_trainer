@@ -6,6 +6,13 @@ from typing import Optional, Dict, Any
 import tempfile
 import shutil
 
+try:
+    from huggingface_hub import hf_hub_download
+
+    HF_HUB_AVAILABLE = True
+except ImportError:
+    HF_HUB_AVAILABLE = False
+
 
 # Default directories to search for checkpoints
 CHECKPOINT_DIRS = [
@@ -19,16 +26,55 @@ CHECKPOINT_DIRS = [
 # Known BEATs model checkpoints with metadata
 BEATS_MODELS = {
     "BEATs_iter3_plus_AS2M": {
-        "url": "https://my.microsoftpersonalcontent.com/personal/6b83b49411ca81a7/_layouts/15/download.aspx?UniqueId=11ca81a7-b494-2083-806b-646500000000&Translate=false&tempauth=v1e.eyJzaXRlaWQiOiJlNmU2YThhZi0yOWNmLTRhYjMtYmM2Zi05ODFmNTRlZmVhOWYiLCJhdWQiOiIwMDAwMDAwMy0wMDAwLTBmZjEtY2UwMC0wMDAwMDAwMDAwMDAvbXkubWljcm9zb2Z0cGVyc29uYWxjb250ZW50LmNvbUA5MTg4MDQwZC02YzY3LTRjNWItYjExMi0zNmEzMDRiNjZkYWQiLCJleHAiOiIxNzU1MDg0NTUyIn0.WAxNc-b3F6dQ_zEaeEUt_5FNtDvVWLuo64xH6j4xsElz9HiP2hoD4xdBtqJ-BBbdqIFTRRQi5zKtoUi41L-pQpGoZjmJmEE42hpfQuVFll81Oi9h63Rp0rXBYh30p4vI_VEglDSpdJNZSxKT7vya9QVwZZgCjcy-ju-BwR0IhelP7SZ7ALkfC6hfJr4_wVYGNN0gZCC6fdYYGoNWBgYSf_mA-aQDU-ZRvICruMhpkM2pu6nDuUuwZTQeOZB1wsIL8Dgpapqgimd44S-61sK9s6ByuFaKuyyvKw8TVi3khp2anUq2RXH3EBY9ihIVFkHK1ILkTpZa1d43OejEYebMIuKW7XnVSC4WDy-3FaqYqrZdkt55YB4wE1PhnCXd_IHBYD9lesX0Hpofsk3v_3_qEgzsKoopWm3-f6DL5ep16CmqC3yYIDEbAKY_PUVojEsthTaZyFR0LGur_wX3E7lvTrHXxCG1B83bZV6XMM6pA0g8xN3yVQdQt6oED4hOGbsw_3g5v0pwhRvwUAI4d2zqNA.-KyMwY6C11eJoSFIHtoAi_GuvmAJkL5t62Ij9MndxJs&ApiVersion=2.0",
+        "hf_repo": "Bencr/beats-checkpoints",
+        "hf_filename": "BEATs_iter3_plus_AS2M.pt",
         "filename": "BEATs_iter3_plus_AS2M.pt",
         "description": "BEATs model trained on AudioSet with 2M iterations",
         "size_mb": 110,  # Approximate size
-    }
+    },
+    "openbeats": {
+        "hf_repo": "Bencr/beats-checkpoints",
+        "hf_filename": "openbeats.pt",
+        "filename": "openbeats.pt",
+        "description": "OpenBEATs checkpoint",
+        "size_mb": 110,  # Approximate size
+    },
 }
 
 
+def download_from_huggingface(
+    repo_id: str,
+    filename: str,
+    cache_dir: Optional[str] = None,
+    force_download: bool = False,
+) -> Path:
+    """Download a file from Hugging Face Hub."""
+    if not HF_HUB_AVAILABLE:
+        raise ImportError(
+            "huggingface_hub is required for downloading checkpoints. "
+            "Install with: pip install huggingface-hub"
+        )
+
+    try:
+        print(f"Downloading {filename} from {repo_id}...")
+
+        # Use HF Hub to download
+        downloaded_path = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            cache_dir=cache_dir,
+            force_download=force_download,
+        )
+
+        print(f"✓ Download complete: {downloaded_path}")
+        return Path(downloaded_path)
+
+    except Exception as e:
+        raise Exception(f"Download from Hugging Face Hub failed: {e}")
+
+
 def download_file_with_progress(url: str, filepath: Path, chunk_size: int = 8192):
-    """Download a file with progress indication."""
+    """Download a file with progress indication (fallback method)."""
     print(f"Downloading {filepath.name}...")
 
     try:
@@ -114,14 +160,31 @@ def download_beats_checkpoint(
     print()
 
     try:
-        # Download to temporary file first, then move to final location
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp_file:
-            tmp_path = Path(tmp_file.name)
+        # Try downloading from Hugging Face Hub first
+        if "hf_repo" in model_info and "hf_filename" in model_info:
+            downloaded_path = download_from_huggingface(
+                repo_id=model_info["hf_repo"],
+                filename=model_info["hf_filename"],
+                cache_dir=str(cache_dir),
+                force_download=force_download,
+            )
 
-        download_file_with_progress(model_info["url"], tmp_path)
+            # Copy to expected location if different
+            if downloaded_path != filepath:
+                shutil.copy2(downloaded_path, filepath)
 
-        # Move to final location
-        shutil.move(str(tmp_path), str(filepath))
+        else:
+            # Fallback to direct URL download (if url is available)
+            if "url" in model_info:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=".tmp"
+                ) as tmp_file:
+                    tmp_path = Path(tmp_file.name)
+
+                download_file_with_progress(model_info["url"], tmp_path)
+                shutil.move(str(tmp_path), str(filepath))
+            else:
+                raise ValueError(f"No download method available for {model_name}")
 
         print(f"🎉 Successfully downloaded {model_name}!")
         return filepath
