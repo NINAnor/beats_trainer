@@ -1,9 +1,9 @@
 """Main BEATs Trainer class providing a simple API for training."""
 
+import os
 from pathlib import Path
 from typing import Optional, Union, Dict, Any
 
-import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -18,6 +18,8 @@ from .config import Config
 from .datasets import load_dataset, validate_dataset, PRESET_LOADERS
 from .data_module import BEATsDataModule
 from .model import BEATsLightningModule
+
+# Import BEATsFeatureExtractor only for convenience method
 from .feature_extractor import BEATsFeatureExtractor
 
 
@@ -26,7 +28,12 @@ class BEATsTrainer:
     Main trainer class for BEATs audio classification.
 
     This class provides a simple, high-level API for training BEATs models
-    on custom audio classification datasets.
+    on custom audio classification datasets. It handles the complete training
+    pipeline including data loading, model setup, training, and evaluation.
+
+    🎯 **Purpose**: Training and fine-tuning BEATs models
+    🔗 **Relationship**: Can create BEATsFeatureExtractor instances for trained models
+    ⚠️  **Note**: For feature extraction only, use BEATsFeatureExtractor directly
 
     Examples:
         # Train from directory structure
@@ -41,6 +48,10 @@ class BEATsTrainer:
         config = TrainingConfig(learning_rate=1e-4, max_epochs=100)
         trainer = BEATsTrainer.from_directory("/path/to/dataset", config=config)
         trainer.train()
+
+        # Get feature extractor for trained model
+        extractor = trainer.get_feature_extractor()
+        features = extractor.extract_from_file("new_audio.wav")
     """
 
     def __init__(
@@ -85,6 +96,9 @@ class BEATsTrainer:
         """Setup PyTorch Lightning components."""
         # Set random seed
         pl.seed_everything(self.config.seed, workers=True)
+        
+        # Configure deterministic behavior for CUDA if needed
+        self._configure_deterministic_mode()
 
         # Data module
         self.data_module = BEATsDataModule(
@@ -119,10 +133,21 @@ class BEATsTrainer:
             logger=self.logger,
             log_every_n_steps=self.config.training.log_every_n_steps,
             default_root_dir=str(self.log_dir),
-            deterministic=True,
+            deterministic=getattr(self.config.training, 'deterministic', False),
             enable_progress_bar=True,
             enable_model_summary=True,
         )
+
+    def _configure_deterministic_mode(self):
+        """Configure deterministic behavior for reproducible results."""
+        deterministic = getattr(self.config.training, 'deterministic', False)
+        
+        if deterministic and torch.cuda.is_available():
+            # Set CUBLAS workspace config for deterministic CuBLAS operations
+            # This is required when using deterministic=True with CUDA >= 10.2
+            if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
+                os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+                print("Set CUBLAS_WORKSPACE_CONFIG=:4096:8 for deterministic CUDA operations")
 
     def _setup_callbacks(self):
         """Setup PyTorch Lightning callbacks."""
@@ -171,6 +196,9 @@ class BEATsTrainer:
         print(
             f"Training config: {self.config.training.max_epochs} epochs, LR={self.config.training.learning_rate}"
         )
+
+        # Configure deterministic mode for CUDA
+        self._configure_deterministic_mode()
 
         # Save configuration
         config_path = self.log_dir / self.config.experiment_name / "config.yaml"
@@ -246,61 +274,40 @@ class BEATsTrainer:
         # TODO: Implement prediction logic
         raise NotImplementedError("Prediction functionality coming soon!")
 
-    def extract_features(
-        self,
-        audio_paths: Union[str, list, Path],
-        checkpoint_path: Optional[str] = None,
-        pooling: str = "mean",
-        normalize: bool = True,
-        batch_size: int = 16,
-        **kwargs,
-    ) -> np.ndarray:
-        """
-        Extract features from audio files using trained BEATs model.
-
-        Args:
-            audio_paths: Path to audio file or list of paths
-            checkpoint_path: Path to model checkpoint (uses best if None)
-            pooling: Pooling method ("mean", "max", "first", "last", "none")
-            normalize: Whether to normalize features
-            batch_size: Batch size for processing multiple files
-            **kwargs: Additional arguments
-
-        Returns:
-            Feature array (num_files, feature_dim) or (feature_dim,) for single file
-        """
-        # Use pretrained model if no checkpoint specified
-        if checkpoint_path is None:
-            checkpoint_path = self.config.model.model_path
-
-        # Create feature extractor
-        extractor = BEATsFeatureExtractor(
-            model_path=checkpoint_path,
-            pooling=pooling,
-        )
-
-        if isinstance(audio_paths, (str, Path)):
-            return extractor.extract_from_file(
-                audio_paths, normalize=normalize, **kwargs
-            )
-        else:
-            return extractor.extract_from_files(
-                audio_paths, batch_size=batch_size, normalize=normalize, **kwargs
-            )
-
     def get_feature_extractor(
         self, checkpoint_path: Optional[str] = None, **kwargs
     ) -> BEATsFeatureExtractor:
         """
-        Get a standalone feature extractor instance.
+        Get a feature extractor using the trained model.
+
+        This is a convenience method for users who want to extract features
+        using their trained model checkpoint. For general feature extraction,
+        create BEATsFeatureExtractor directly.
+
+        Note: This method bridges BEATsTrainer (training) and BEATsFeatureExtractor
+        (inference) by providing the trained model checkpoint to the extractor.
 
         Args:
-            checkpoint_path: Path to model checkpoint (uses pretrained if None)
+            checkpoint_path: Path to trained model checkpoint (uses best if None)
             **kwargs: Additional arguments for BEATsFeatureExtractor
 
         Returns:
-            BEATsFeatureExtractor instance
+            BEATsFeatureExtractor instance configured with trained model
+
+        Example:
+            # Train a model
+            trainer = BEATsTrainer.from_directory("/path/to/data")
+            trainer.train()
+
+            # Get feature extractor with trained model
+            extractor = trainer.get_feature_extractor()
+            features = extractor.extract_from_file("new_audio.wav")
         """
+        if checkpoint_path is None:
+            # Use best checkpoint from training
+            checkpoint_path = getattr(self.callbacks[0], "best_model_path", None)
+
+        # If still None, fall back to pretrained model
         if checkpoint_path is None:
             checkpoint_path = self.config.model.model_path
 
