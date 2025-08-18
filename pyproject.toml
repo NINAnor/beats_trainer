@@ -20,8 +20,6 @@ classifiers = [
   "Topic :: Multimedia :: Sound/Audio :: Analysis"
 ]
 dependencies = [
-  "torch>=1.11.0",
-  "torchaudio>=0.11.0",
   "pytorch-lightning>=1.9.0",
   "torchmetrics>=0.11.0",
   "librosa>=0.9.0",
@@ -35,7 +33,9 @@ dependencies = [
   "umap-learn>=0.5.0",
   "requests>=2.25.0",
   "huggingface-hub>=0.17.0",
-  "dvc[webdav]>=3.0.0"
+  "dvc[webdav]>=3.0.0",
+  "torch==2.5.1",
+  "torchaudio==2.5.1"
 ]
 description = "A streamlined library for training and using BEATs (Bidirectional Encoder representation from Audio Transformers) models on audio classification tasks"
 keywords = ["audio", "classification", "transformer", "BEATs", "machine-learning", "pytorch"]

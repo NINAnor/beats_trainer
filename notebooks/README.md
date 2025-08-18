@@ -9,7 +9,7 @@ Welcome to the BEATs Trainer example notebooks! Choose the right notebook based 
 
 Learn how to extract audio features in just a few steps:
 - Install and import the library
-- Extract features from your audio files  
+- Extract features from your audio files
 - Compare audio similarity
 - Ready-to-run examples
 
@@ -17,7 +17,7 @@ Learn how to extract audio features in just a few steps:
 
 ---
 
-### [Quick_Start_Training.ipynb](Quick_Start_Training.ipynb) 
+### [Quick_Start_Training.ipynb](Quick_Start_Training.ipynb)
 **⏱️ 15-20 minutes** | **👤 Beginner-friendly**
 
 Train your own custom BEATs model:
@@ -63,7 +63,7 @@ Complete ESC-50 fine-tuning walkthrough:
 ### 🔰 **New to BEATs or Audio ML?**
 → Start with **Quick_Start_Feature_Extraction.ipynb**
 
-### 🎯 **Want to train on your own data?** 
+### 🎯 **Want to train on your own data?**
 → Use **Quick_Start_Training.ipynb**
 
 ### 🧠 **Need detailed analysis or research?**

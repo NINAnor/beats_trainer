@@ -61,17 +61,81 @@ class BEATsLightningModule(pl.LightningModule):
             raise FileNotFoundError(f"BEATs model not found at: {model_path}")
 
         checkpoint = torch.load(model_path, map_location="cpu")
+
+        # Handle incomplete checkpoint configurations (like OpenBEATs)
+        checkpoint_cfg = checkpoint["cfg"]
+
+        # Define default configuration values for missing parameters
+        default_config = {
+            "encoder_layers": 12,
+            "encoder_embed_dim": 768,
+            "encoder_ffn_embed_dim": 3072,
+            "encoder_attention_heads": 12,
+            "activation_fn": "gelu",
+            "dropout": 0.1,
+            "attention_dropout": 0.1,
+            "activation_dropout": 0.1,
+            "encoder_layerdrop": 0.0,
+            "dropout_input": 0.1,
+            "layer_norm_first": False,
+            "conv_bias": False,
+            "conv_pos": 128,
+            "conv_pos_groups": 16,
+            "relative_position_embedding": True,
+            "num_buckets": 320,
+            "max_distance": 800,
+            "gru_rel_pos": True,
+            "deep_norm": True,
+            "input_patch_size": 16,
+            "layer_wise_gradient_decay_ratio": 1.0,
+            "embed_dim": 512,
+        }
+
+        # Merge default config with checkpoint config (checkpoint values take precedence)
+        complete_cfg = {**default_config, **checkpoint_cfg}
+
+        # Add training-specific parameters
         cfg = BEATsConfig(
             {
-                **checkpoint["cfg"],
+                **complete_cfg,
                 "predictor_class": self.num_classes,
                 "finetuned_model": False,
             }
         )
 
+        print(f"Loading BEATs model from: {model_path}")
+        print(
+            f"Model config: embed_dim={cfg.encoder_embed_dim}, patch_size={cfg.input_patch_size}"
+        )
+
         # Initialize BEATs backbone
         self.backbone = BEATs(cfg)
-        self.backbone.load_state_dict(checkpoint["model"])
+
+        # Load state dict with error handling for missing/extra keys
+        try:
+            self.backbone.load_state_dict(checkpoint["model"], strict=True)
+            print("✅ Loaded checkpoint with exact match")
+        except RuntimeError as e:
+            if "Unexpected key(s)" in str(e) or "Missing key(s)" in str(e):
+                print(f"⚠️ Checkpoint has architecture differences: {e}")
+                print("Attempting to load with strict=False...")
+
+                # Load with strict=False to ignore extra/missing keys
+                missing_keys, unexpected_keys = self.backbone.load_state_dict(
+                    checkpoint["model"], strict=False
+                )
+
+                if missing_keys:
+                    print(
+                        f"Missing keys (will use random initialization): {missing_keys}"
+                    )
+                if unexpected_keys:
+                    print(f"Unexpected keys (will be ignored): {unexpected_keys}")
+
+                print("✅ Loaded checkpoint with partial match")
+            else:
+                # Re-raise other types of errors
+                raise e
 
         # Freeze backbone if requested
         if self.config.model.freeze_backbone:

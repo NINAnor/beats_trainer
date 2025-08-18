@@ -18,10 +18,12 @@ from .checkpoint_utils import (
 # Training components (optional - only if dependencies are available)
 try:
     from .trainer import BEATsTrainer
+    from .config import Config
 
     _TRAINING_AVAILABLE = True
 except ImportError:
     BEATsTrainer = None  # Avoid unused import warning
+    Config = None
     _TRAINING_AVAILABLE = False
 
 # Package metadata
@@ -48,4 +50,4 @@ __all__ = [
 
 # Add training components if available
 if _TRAINING_AVAILABLE:
-    __all__.append("BEATsTrainer")
+    __all__.extend(["BEATsTrainer", "Config"])
