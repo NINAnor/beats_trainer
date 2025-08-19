@@ -727,7 +727,7 @@ tzdata = [
 
 [[package]]
 name = "beats-trainer"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "dvc", version = "3.42.0", source = { registry = "https://pypi.org/simple" }, extra = ["webdav"], marker = "python_full_version < '3.9'" },

@@ -2,12 +2,19 @@
 Test configuration and utilities for BEATs library tests.
 """
 
-import pytest
+import sys
 import tempfile
-import numpy as np
-import torch
 from pathlib import Path
 from typing import List
+
+import numpy as np
+import pytest
+import torch
+
+# Add src directory to Python path for test imports
+src_path = Path(__file__).parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 # Test configuration
 TEST_SAMPLE_RATE = 16000

@@ -198,3 +198,4 @@ notebooks/ESC50_organized/
 .vscode
 /checkpoints
 .secrets
+logs/

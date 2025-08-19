@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+import os
 from torch.optim import AdamW, Adam, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics import Accuracy, F1Score
@@ -55,6 +56,65 @@ class BEATsLightningModule(pl.LightningModule):
 
     def _setup_model(self):
         """Setup BEATs model and classifier."""
+
+        if self.config.model.train_from_scratch:
+            print("🏗️ Initializing BEATs model from scratch (no pre-trained weights)")
+            self._setup_model_from_scratch()
+        else:
+            print("📥 Loading pre-trained BEATs model")
+            self._setup_pretrained_model()
+
+        # Freeze backbone if requested
+        if self.config.model.freeze_backbone:
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+
+        # Create classifier head
+        self._setup_classifier()
+
+    def _setup_model_from_scratch(self):
+        """Initialize BEATs model from scratch without pre-trained weights."""
+        # Create model configuration from config parameters
+        cfg = BEATsConfig(
+            {
+                "encoder_layers": self.config.model.encoder_layers,
+                "encoder_embed_dim": self.config.model.encoder_embed_dim,
+                "encoder_ffn_embed_dim": self.config.model.encoder_ffn_embed_dim,
+                "encoder_attention_heads": self.config.model.encoder_attention_heads,
+                "activation_fn": "gelu",
+                "dropout": self.config.model.dropout_rate,
+                "attention_dropout": 0.1,
+                "activation_dropout": 0.1,
+                "encoder_layerdrop": 0.0,
+                "dropout_input": 0.1,
+                "layer_norm_first": False,
+                "conv_bias": False,
+                "conv_pos": 128,
+                "conv_pos_groups": 16,
+                "relative_position_embedding": True,
+                "num_buckets": 320,
+                "max_distance": 800,
+                "gru_rel_pos": True,
+                "deep_norm": True,
+                "input_patch_size": self.config.model.input_patch_size,
+                "layer_wise_gradient_decay_ratio": 1.0,
+                "embed_dim": self.config.model.embed_dim,
+                "predictor_class": self.num_classes,
+                "finetuned_model": False,
+            }
+        )
+
+        print("Creating BEATs model from scratch with config:")
+        print(f"  embed_dim={cfg.encoder_embed_dim}, patch_size={cfg.input_patch_size}")
+        print(f"  layers={cfg.encoder_layers}, heads={cfg.encoder_attention_heads}")
+
+        # Initialize BEATs backbone with random weights
+        self.backbone = BEATs(cfg)
+
+        print("✅ Model initialized from scratch with random weights")
+
+    def _setup_pretrained_model(self):
+        """Setup BEATs model with pre-trained weights."""
         # Load pretrained BEATs
         model_path = self.config.model.model_path
         if not os.path.exists(model_path):
@@ -86,7 +146,7 @@ class BEATsLightningModule(pl.LightningModule):
             "max_distance": 800,
             "gru_rel_pos": True,
             "deep_norm": True,
-            "input_patch_size": 16,
+            "input_patch_size": 16,  # Critical for OpenBEATs compatibility
             "layer_wise_gradient_decay_ratio": 1.0,
             "embed_dim": 512,
         }
@@ -111,42 +171,49 @@ class BEATsLightningModule(pl.LightningModule):
         # Initialize BEATs backbone
         self.backbone = BEATs(cfg)
 
-        # Load state dict with error handling for missing/extra keys
+        # Use the new reload_pretrained_parameters method for proper loading
         try:
-            self.backbone.load_state_dict(checkpoint["model"], strict=True)
-            print("✅ Loaded checkpoint with exact match")
-        except RuntimeError as e:
-            if "Unexpected key(s)" in str(e) or "Missing key(s)" in str(e):
-                print(f"⚠️ Checkpoint has architecture differences: {e}")
-                print("Attempting to load with strict=False...")
+            self.backbone.reload_pretrained_parameters(state_dict=checkpoint["model"])
+            print("✅ Loaded checkpoint using reload_pretrained_parameters method")
+        except Exception as e:
+            print(f"❌ Error loading with new method: {e}")
+            print("Falling back to original loading method...")
 
-                # Load with strict=False to ignore extra/missing keys
-                missing_keys, unexpected_keys = self.backbone.load_state_dict(
-                    checkpoint["model"], strict=False
-                )
+            # Fallback to original loading method
+            try:
+                self.backbone.load_state_dict(checkpoint["model"], strict=True)
+                print("✅ Loaded checkpoint with exact match")
+            except RuntimeError as e:
+                if "Unexpected key(s)" in str(e) or "Missing key(s)" in str(e):
+                    print(f"⚠️ Checkpoint has architecture differences: {e}")
+                    print("Attempting to load with strict=False...")
 
-                if missing_keys:
-                    print(
-                        f"Missing keys (will use random initialization): {missing_keys}"
+                    # Load with strict=False to ignore extra/missing keys
+                    missing_keys, unexpected_keys = self.backbone.load_state_dict(
+                        checkpoint["model"], strict=False
                     )
-                if unexpected_keys:
-                    print(f"Unexpected keys (will be ignored): {unexpected_keys}")
 
-                print("✅ Loaded checkpoint with partial match")
-            else:
-                # Re-raise other types of errors
-                raise e
+                    if missing_keys:
+                        print(
+                            f"Missing keys (will use random initialization): {missing_keys}"
+                        )
+                    if unexpected_keys:
+                        print(f"Unexpected keys (will be ignored): {unexpected_keys}")
 
-        # Freeze backbone if requested
-        if self.config.model.freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+                    print("✅ Loaded checkpoint with partial match")
+                else:
+                    # Re-raise other types of errors
+                    raise e
 
-        # Create classifier head
+    def _setup_classifier(self):
+        """Setup the classification head."""
         if self.config.model.use_custom_head and self.config.model.hidden_dims:
             # Multi-layer head
             layers = []
-            input_dim = cfg.encoder_embed_dim
+            if self.config.model.train_from_scratch:
+                input_dim = self.config.model.encoder_embed_dim
+            else:
+                input_dim = self.backbone.cfg.encoder_embed_dim
 
             for hidden_dim in self.config.model.hidden_dims:
                 layers.extend(
@@ -164,7 +231,11 @@ class BEATsLightningModule(pl.LightningModule):
             self.classifier = nn.Sequential(*layers)
         else:
             # Simple linear classifier
-            self.classifier = nn.Linear(cfg.encoder_embed_dim, self.num_classes)
+            if self.config.model.train_from_scratch:
+                input_dim = self.config.model.encoder_embed_dim
+            else:
+                input_dim = self.backbone.cfg.encoder_embed_dim
+            self.classifier = nn.Linear(input_dim, self.num_classes)
 
     def forward(self, x, padding_mask=None):
         """Forward pass."""

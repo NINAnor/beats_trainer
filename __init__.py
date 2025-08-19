@@ -1,1 +1,0 @@
-"""Python template package."""
