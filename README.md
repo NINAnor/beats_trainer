@@ -18,6 +18,7 @@ uv add git+https://github.com/ninanor/beats-trainer.git
 - **🤖 Automatic Checkpoint Management**: Download BEATs models automatically
 - **📊 Feature Extraction**: Extract high-quality audio embeddings
 - **🔧 Simple Training API**: Fine-tune BEATs with just a few lines of code
+- **🏗️ Train from Scratch**: Initialize and train BEATs without pre-trained weights
 - **📚 Comprehensive Notebooks**: Step-by-step tutorials and examples
 - **⚡ GPU Support**: Automatic CUDA detection and optimization
 
@@ -52,7 +53,7 @@ from beats_trainer import ensure_checkpoint, list_available_models
 
 # List available models
 models = list_available_models()
-print(models.keys())  # ['BEATs_iter3_plus_AS2M', 'openbeats']
+print(models.keys())  # ['BEATs_iter3_plus_AS2M', 'openbeats', 'openbeats_i1', 'openbeats_i2', 'openbeats_i3']
 
 # Ensure checkpoint is available (automatically downloads from Hugging Face Hub)
 checkpoint_path = ensure_checkpoint()
@@ -71,6 +72,54 @@ results = trainer.train()
 # Extract features with the trained model
 features = trainer.extract_features(["new_audio1.wav", "new_audio2.wav"])
 ```
+
+### Training From Scratch (No Pre-trained Weights)
+
+For scenarios where you want to train BEATs completely from scratch without using pre-trained weights:
+
+```python
+from beats_trainer.config import Config, ModelConfig, DataConfig, TrainingConfig
+
+# Create configuration for training from scratch
+config = Config(
+    experiment_name="beats_from_scratch",
+    data=DataConfig(
+        data_dir="path/to/your/audio/data",
+        batch_size=16,  # Smaller batch size often works better
+        sample_rate=16000
+    ),
+    model=ModelConfig(
+        train_from_scratch=True,    # Key parameter!
+
+        # Model architecture (customizable)
+        encoder_layers=12,          # Number of transformer layers
+        encoder_embed_dim=768,      # Hidden dimension
+        encoder_attention_heads=12, # Number of attention heads
+        input_patch_size=16,        # Audio patch size
+
+        # Training strategy (automatically configured)
+        fine_tune_backbone=True,    # Train entire backbone
+        freeze_backbone=False,      # Don't freeze any layers
+    ),
+    training=TrainingConfig(
+        learning_rate=1e-3,         # Higher LR for training from scratch
+        max_epochs=100,             # More epochs needed
+        patience=15,                # More patience for convergence
+        optimizer="adamw"
+    )
+)
+
+# Train the model
+trainer = BEATsTrainer(config)
+results = trainer.train()
+```
+
+**Key Differences from Pre-trained Training:**
+- No checkpoint file is required
+- Model weights are randomly initialized
+- Entire backbone is trained (not frozen)
+- Typically requires more epochs and data
+- Higher learning rates are often beneficial
 
 ## 📁 Data Formatting for Training
 
@@ -269,7 +318,7 @@ extractors = {
 
 This project is licensed under the MIT License.
 
-BEATs_iter3_plus_AS2M.pt model weights are provided by Microsoft Research under their respective license terms (MIT). These can be found in their [GitHub repository](https://github.com/microsoft/unilm/tree/master/beats)
+BEATs_iter3_plus_AS2M.pt model weights are provided by Microsoft Research under their respective license terms (MIT). These can be found in their [GitHub repository](https://github.com/microsoft/unilm/tree/master/beats). The BEATs paper detailing its architecture is [available on Arxiv](https://arxiv.org/pdf/2507.14129)
 
 OpenBEATs-Base-i3.pt model weights are provided by the OpenBEATs project under their respective license terms. More details can be found in the [OpenBEATs paper](https://arxiv.org/pdf/2507.14129)
 

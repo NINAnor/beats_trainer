@@ -33,10 +33,31 @@ BEATS_MODELS = {
         "size_mb": 110,  # Approximate size
     },
     "openbeats": {
-        "hf_repo": "Bencr/beats-checkpoints",
-        "hf_filename": "openbeats.pt",
-        "filename": "openbeats.pt",
-        "description": "OpenBEATs checkpoint",
+        "hf_repo": "shikhar7ssu/OpenBEATs-Base-i3",
+        "hf_filename": "work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter2_base2.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch_latest.pt",
+        "filename": "openbeats_i3.pt",
+        "description": "OpenBEATs Base iteration 3 checkpoint",
+        "size_mb": 110,  # Approximate size
+    },
+    "openbeats_i1": {
+        "hf_repo": "shikhar7ssu/OpenBEATs-Base-i1",
+        "hf_filename": "work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch_latest.pt",
+        "filename": "openbeats_i1.pt",
+        "description": "OpenBEATs Base iteration 1 checkpoint",
+        "size_mb": 110,  # Approximate size
+    },
+    "openbeats_i2": {
+        "hf_repo": "shikhar7ssu/OpenBEATs-Base-i2",
+        "hf_filename": "work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter1_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch_latest.pt",
+        "filename": "openbeats_i2.pt",
+        "description": "OpenBEATs Base iteration 2 checkpoint",
+        "size_mb": 110,  # Approximate size
+    },
+    "openbeats_i3": {
+        "hf_repo": "shikhar7ssu/OpenBEATs-Base-i3",
+        "hf_filename": "work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter2_base2.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch_latest.pt",
+        "filename": "openbeats_i3.pt",
+        "description": "OpenBEATs Base iteration 3 checkpoint",
         "size_mb": 110,  # Approximate size
     },
 }
@@ -58,13 +79,15 @@ def download_from_huggingface(
     try:
         print(f"Downloading {filename} from {repo_id}...")
 
-        # Use HF Hub to download from dataset repository
+        # Use HF Hub to download from model repository for OpenBEATs, dataset repo for others
+        repo_type = "model" if "OpenBEATs" in repo_id else "dataset"
+
         downloaded_path = hf_hub_download(
             repo_id=repo_id,
             filename=filename,
             cache_dir=cache_dir,
             force_download=force_download,
-            repo_type="dataset",  # Specify that this is a dataset repository
+            repo_type=repo_type,
         )
 
         print(f"✓ Download complete: {downloaded_path}")

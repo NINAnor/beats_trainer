@@ -99,17 +99,57 @@ class BEATsFeatureExtractor:
         # Load checkpoint
         checkpoint = torch.load(self.model_path, map_location="cpu")
 
+        # Handle incomplete checkpoint configurations (like OpenBEATs)
+        checkpoint_cfg = checkpoint["cfg"]
+
+        # Define default configuration values for missing parameters
+        default_config = {
+            "encoder_layers": 12,
+            "encoder_embed_dim": 768,
+            "encoder_ffn_embed_dim": 3072,
+            "encoder_attention_heads": 12,
+            "activation_fn": "gelu",
+            "dropout": 0.1,
+            "attention_dropout": 0.1,
+            "activation_dropout": 0.1,
+            "encoder_layerdrop": 0.0,
+            "dropout_input": 0.1,
+            "layer_norm_first": False,
+            "conv_bias": False,
+            "conv_pos": 128,
+            "conv_pos_groups": 16,
+            "relative_position_embedding": True,
+            "num_buckets": 320,
+            "max_distance": 800,
+            "gru_rel_pos": True,
+            "deep_norm": True,
+            "input_patch_size": 16,  # Critical for OpenBEATs compatibility
+            "layer_wise_gradient_decay_ratio": 1.0,
+            "embed_dim": 512,
+        }
+
+        # Merge default config with checkpoint config (checkpoint values take precedence)
+        complete_cfg = {**default_config, **checkpoint_cfg}
+
         # Create config for feature extraction (no classifier)
         cfg = BEATsConfig(
             {
-                **checkpoint["cfg"],
+                **complete_cfg,
                 "finetuned_model": False,  # Remove classifier head
             }
         )
 
         # Initialize model
         self.model = BEATs(cfg)
-        self.model.load_state_dict(checkpoint["model"])
+
+        # Use the improved loading method
+        try:
+            self.model.reload_pretrained_parameters(state_dict=checkpoint["model"])
+        except Exception as e:
+            print(f"Warning: Failed to use reload_pretrained_parameters: {e}")
+            print("Falling back to standard loading...")
+            self.model.load_state_dict(checkpoint["model"], strict=False)
+
         self.model.to(self.device)
         self.model.eval()
 

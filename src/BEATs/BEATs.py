@@ -25,7 +25,10 @@ logger = logging.getLogger(__name__)
 
 class BEATsConfig:
     def __init__(self, cfg=None):
-        self.input_patch_size: int = -1  # path size of patch embedding
+        self.input_patch_size: int = 16  # patch size of patch embedding
+        self.input_size: int = (
+            16  # alias for input_patch_size for backward compatibility
+        )
         self.embed_dim: int = 512  # patch embedding dimension
         self.conv_bias: bool = False  # include bias in conv encoder
 
@@ -82,6 +85,11 @@ class BEATsConfig:
 
     def update(self, cfg: dict):
         self.__dict__.update(cfg)
+        # Keep input_size and input_patch_size synchronized
+        if "input_size" in cfg and "input_patch_size" not in cfg:
+            self.input_patch_size = cfg["input_size"]
+        elif "input_patch_size" in cfg and "input_size" not in cfg:
+            self.input_size = cfg["input_patch_size"]
 
 
 class BEATs(nn.Module):
@@ -110,6 +118,22 @@ class BEATs(nn.Module):
             bias=cfg.conv_bias,
         )
 
+        # OpenBEATs-specific padding layers for proper padding mask computation
+        self.patch_embedding_pad = nn.Conv2d(
+            1,
+            1,
+            kernel_size=self.input_patch_size,
+            stride=self.input_patch_size,
+            bias=False,
+        )
+        self.raw2fbank_pad = nn.Conv1d(
+            1,
+            1,
+            kernel_size=400,
+            stride=160,
+            bias=False,
+        )
+
         self.dropout_input = nn.Dropout(cfg.dropout_input)
 
         assert not cfg.deep_norm or not cfg.layer_norm_first
@@ -122,6 +146,70 @@ class BEATs(nn.Module):
         else:
             self.predictor = None
 
+        # Initialize model weights
+        self.initialize()
+
+    def initialize(self):
+        """Initialize model weights using OpenBEATs-compatible initialization."""
+        logger.info("BEATs Initialization function called.")
+
+        # Initialize post-extract projection
+        if self.post_extract_proj:
+            torch.nn.init.xavier_normal_(self.post_extract_proj.weight)
+            if self.post_extract_proj.bias is not None:
+                torch.nn.init.constant_(self.post_extract_proj.bias, 0)
+
+        # Initialize patch embedding
+        torch.nn.init.xavier_normal_(self.patch_embedding.weight)
+        if self.patch_embedding.bias is not None:
+            torch.nn.init.constant_(self.patch_embedding.bias, 0)
+
+        # Initialize OpenBEATs padding layers (these are typically frozen)
+        torch.nn.init.xavier_normal_(self.patch_embedding_pad.weight)
+        torch.nn.init.xavier_normal_(self.raw2fbank_pad.weight)
+
+        # Freeze the padding layers (as done in the reference implementation)
+        for param in self.patch_embedding_pad.parameters():
+            param.requires_grad = False
+        for param in self.raw2fbank_pad.parameters():
+            param.requires_grad = False
+
+    def reload_pretrained_parameters(
+        self, checkpoint_path: str = None, state_dict: dict = None
+    ):
+        """Load pretrained parameters from checkpoint.
+
+        This method properly handles OpenBEATs and standard BEATs checkpoints
+        with different architectures and missing/unexpected keys.
+        """
+        if checkpoint_path is not None:
+            logger.info(f"Loading BEATs checkpoint from: {checkpoint_path}")
+            checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            state_dict = checkpoint.get("model", checkpoint)
+
+        if state_dict is None:
+            logger.warning("No state dict provided for loading pretrained parameters")
+            return
+
+        # Load state dict with proper error handling
+        try:
+            load_info = self.load_state_dict(state_dict, strict=False)
+
+            if load_info.missing_keys:
+                logger.info(
+                    f"Missing keys (will use random initialization): {load_info.missing_keys}"
+                )
+            if load_info.unexpected_keys:
+                logger.info(
+                    f"Unexpected keys (ignored from checkpoint): {load_info.unexpected_keys}"
+                )
+
+            logger.info("Successfully loaded BEATs pretrained parameters")
+
+        except Exception as e:
+            logger.error(f"Error loading pretrained parameters: {e}")
+            raise e
+
     def forward_padding_mask(
         self,
         features: torch.Tensor,
@@ -133,6 +221,22 @@ class BEATs(nn.Module):
         padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
         padding_mask = padding_mask.all(-1)
         return padding_mask
+
+    def forward(
+        self,
+        source: torch.Tensor,
+        padding_mask: Optional[torch.Tensor] = None,
+        fbank_mean: float = 15.41663,
+        fbank_std: float = 6.55582,
+    ):
+        """Forward pass through the BEATs model."""
+        features, _ = self.extract_features(
+            source=source,
+            padding_mask=padding_mask,
+            fbank_mean=fbank_mean,
+            fbank_std=fbank_std,
+        )
+        return features
 
     def preprocess(
         self,

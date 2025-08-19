@@ -31,7 +31,8 @@ class TestCheckpointUtils:
 
         # Check model info structure
         for model_name, info in models.items():
-            assert "url" in info
+            assert "hf_repo" in info
+            assert "hf_filename" in info
             assert "description" in info
             assert "size_mb" in info
             assert isinstance(info["size_mb"], (int, float))
@@ -42,7 +43,8 @@ class TestCheckpointUtils:
         info = get_model_info("BEATs_iter3_plus_AS2M")
 
         assert info is not None
-        assert "url" in info
+        assert "hf_repo" in info
+        assert "hf_filename" in info
         assert "description" in info
         assert "size_mb" in info
 

@@ -46,6 +46,17 @@ class ModelConfig:
     model_path: Optional[str] = None
     num_classes: Optional[int] = None  # Auto-inferred if None
 
+    # Training from scratch vs pre-trained
+    train_from_scratch: bool = False  # If True, don't load pre-trained weights
+
+    # Model architecture (used when training from scratch)
+    encoder_layers: int = 12
+    encoder_embed_dim: int = 768
+    encoder_ffn_embed_dim: int = 3072
+    encoder_attention_heads: int = 12
+    input_patch_size: int = 16
+    embed_dim: int = 512
+
     # Training strategy
     freeze_backbone: bool = True
     fine_tune_backbone: bool = False
@@ -57,9 +68,14 @@ class ModelConfig:
     activation: str = "relu"
 
     def __post_init__(self):
-        """Set default model path if none provided."""
-        if self.model_path is None:
+        """Set default model path if none provided and not training from scratch."""
+        if not self.train_from_scratch and self.model_path is None:
             self.model_path = "checkpoints/BEATs_iter3_plus_AS2M.pt"
+
+        # When training from scratch, fine_tune_backbone should be True
+        if self.train_from_scratch:
+            self.fine_tune_backbone = True
+            self.freeze_backbone = False
 
 
 @dataclass
