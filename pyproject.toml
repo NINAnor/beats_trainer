@@ -73,10 +73,10 @@ notebooks = [
 beats-train = "beats_trainer.cli:main"
 
 [project.urls]
-Documentation = "https://github.com/benjamin-cretois/beats-trainer/tree/main/BEATs_explained"
-Homepage = "https://github.com/benjamin-cretois/beats-trainer"
-Issues = "https://github.com/benjamin-cretois/beats-trainer/issues"
-Repository = "https://github.com/benjamin-cretois/beats-trainer"
+Documentation = "https://github.com/ninanor/beats-trainer/tree/main/BEATs_explained"
+Homepage = "https://github.com/ninanor/beats-trainer"
+Issues = "https://github.com/ninanor/beats-trainer/issues"
+Repository = "https://github.com/ninanor/beats-trainer"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/beats_trainer", "src/BEATs"]
