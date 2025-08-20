@@ -392,3 +392,57 @@ class BEATsTrainer:
 
         dataset = PRESET_LOADERS[preset_name](data_dir)
         return cls(dataset=dataset, data_dir=data_dir, config=config, **kwargs)
+
+    @classmethod
+    def from_esc50(
+        cls,
+        data_dir: Union[str, Path] = "./datasets",
+        config: Optional[Config] = None,
+        auto_download: bool = True,
+        force_download: bool = False,
+        **kwargs,
+    ) -> "BEATsTrainer":
+        """
+        Create trainer with ESC-50 dataset (auto-download and organize).
+
+        This is a convenience method that automatically downloads, extracts,
+        and organizes the ESC-50 dataset for training with .from_directory().
+
+        Args:
+            data_dir: Directory where to store/find ESC-50 dataset
+            config: Training configuration
+            auto_download: Automatically download if dataset not found
+            force_download: Re-download even if dataset exists
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance ready for training
+
+        Example:
+            # Download and train on ESC-50
+            trainer = BEATsTrainer.from_esc50()
+            trainer.train()
+
+            # Custom data directory
+            trainer = BEATsTrainer.from_esc50(data_dir="./my_datasets")
+            trainer.train()
+        """
+        from .datasets import download_and_organize_esc50
+
+        data_dir = Path(data_dir)
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        if auto_download or force_download:
+            # Download and organize ESC-50
+            organized_dir = download_and_organize_esc50(data_dir, force_download)
+        else:
+            # Look for existing organized dataset
+            organized_dir = data_dir / "ESC50_organized"
+            if not organized_dir.exists():
+                raise FileNotFoundError(
+                    f"ESC-50 dataset not found at {organized_dir}. "
+                    f"Set auto_download=True to download automatically."
+                )
+
+        # Create trainer from organized directory
+        return cls.from_directory(organized_dir, config=config, **kwargs)

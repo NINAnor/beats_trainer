@@ -755,6 +755,7 @@ dependencies = [
     { name = "torchmetrics", version = "1.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "torchmetrics", version = "1.8.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "torchvision" },
+    { name = "tqdm" },
     { name = "umap-learn", version = "0.5.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "umap-learn", version = "0.5.9.post2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
@@ -818,6 +819,7 @@ requires-dist = [
     { name = "torchaudio", specifier = ">=2.5.1,<2.7.0" },
     { name = "torchmetrics", specifier = ">=0.11.0" },
     { name = "torchvision", specifier = ">=0.20.1,<0.22.0" },
+    { name = "tqdm", specifier = ">=4.60.0" },
     { name = "umap-learn", specifier = ">=0.5.0" },
     { name = "umap-learn", marker = "extra == 'notebooks'", specifier = ">=0.5.0" },
 ]

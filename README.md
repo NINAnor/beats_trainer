@@ -25,7 +25,8 @@ pip install git+https://github.com/ninanor/beats_trainer.git
 ## ✨ Key Features
 
 - **🤖 Automatic Checkpoint Management**: Download BEATs models automatically
-- **📊 Feature Extraction**: Extract high-quality audio embeddings
+- **� Dataset Auto-Download**: ESC-50 and UrbanSound8K with automatic organization
+- **�📊 Feature Extraction**: Extract high-quality audio embeddings
 - **🔧 Simple Training API**: Fine-tune BEATs with just a few lines of code
 - **🏗️ Train from Scratch**: Initialize and train BEATs without pre-trained weights
 - **📚 Comprehensive Notebooks**: Step-by-step tutorials and examples
@@ -71,6 +72,8 @@ print(f"Checkpoint ready at: {checkpoint_path}")
 
 ### Fine-tuning on Custom Data
 
+For training only the classification head:
+
 ```python
 from beats_trainer import BEATsTrainer
 
@@ -81,6 +84,56 @@ results = trainer.train()
 # Extract features with the trained model
 features = trainer.extract_features(["new_audio1.wav", "new_audio2.wav"])
 ```
+
+For fine-tuning the entire model architecture:
+
+```python
+from beats_trainer import BEATsTrainer
+from beats_trainer.config import Config
+
+config.model.freeze_backbone = False  # Fine-tune the entire model
+config.model.fine_tune_backbone = True
+
+trainer = BEATsTrainer.from_directory("/path/to/dataset", config=config)
+results = trainer.train()
+```
+
+### ESC-50 Dataset (Auto-Download & Train)
+
+Get started immediately with the ESC-50 environmental sound classification dataset:
+
+```python
+from beats_trainer import BEATsTrainer
+from beats_trainer.config import Config
+
+# Create optimized config for 95% ESC-50 performance
+config = Config()
+config.model.freeze_backbone = False  # Key: fine-tune entire model
+config.model.fine_tune_backbone = True
+config.training.max_epochs = 50
+config.training.learning_rate = 5e-5
+
+# Auto-download, organize, and train (achieves ~95% accuracy)
+trainer = BEATsTrainer.from_esc50(data_dir="./datasets", config=config)
+trainer.train()
+```
+
+**What this does:**
+- 📥 **Downloads** ESC-50 dataset (50 environmental sound classes)
+- 📁 **Organizes** into proper folder structure for training
+- 🚀 **Trains** with optimal settings for 95% accuracy
+- 💾 **Saves** best model checkpoint automatically
+
+The dataset will be organized as:
+```
+datasets/
+└── ESC50_organized/
+    ├── airplane/
+    ├── breathing/
+    ├── car_horn/
+    └── ... (50 classes total)
+```
+
 
 ### Training From Scratch (No Pre-trained Weights)
 
