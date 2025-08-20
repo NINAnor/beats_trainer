@@ -6,11 +6,20 @@ We attempt to solve this by building a streamlined library for training and usin
 
 ## 🚀 Quick Start
 
-### Install and Test
+## 🚀 Installation
+
+### Option 1: Using uv (Recommended)
 
 ```bash
 # Install from GitHub
 uv add git+https://github.com/ninanor/beats_trainer.git
+```
+
+### Option 2: Using pip
+
+```bash
+# Install from GitHub
+pip install git+https://github.com/ninanor/beats_trainer.git
 ```
 
 ## ✨ Key Features
