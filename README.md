@@ -25,8 +25,7 @@ pip install git+https://github.com/ninanor/beats_trainer.git
 ## ✨ Key Features
 
 - **🤖 Automatic Checkpoint Management**: Download BEATs models automatically
-- **� Dataset Auto-Download**: ESC-50 and UrbanSound8K with automatic organization
-- **�📊 Feature Extraction**: Extract high-quality audio embeddings
+- **� Feature Extraction**: Extract high-quality audio embeddings
 - **🔧 Simple Training API**: Fine-tune BEATs with just a few lines of code
 - **🏗️ Train from Scratch**: Initialize and train BEATs without pre-trained weights
 - **📚 Comprehensive Notebooks**: Step-by-step tutorials and examples
@@ -58,16 +57,72 @@ print(f"Batch features: {features.shape}")  # (2, 768)
 
 ### Checkpoint Management
 
+The library provides several ways to manage and use BEATs model checkpoints:
+
+#### 1. List Available Models
+
 ```python
-from beats_trainer import ensure_checkpoint, list_available_models
+from beats_trainer import list_available_models
 
-# List available models
+# See all available pre-trained models
 models = list_available_models()
-print(models.keys())  # ['BEATs_iter3_plus_AS2M', 'openbeats', 'openbeats_i1', 'openbeats_i2', 'openbeats_i3']
+print(models.keys())
+# Output: ['BEATs_iter3_plus_AS2M', 'openbeats', 'openbeats_i1', 'openbeats_i2', 'openbeats_i3']
 
-# Ensure checkpoint is available (automatically downloads from Hugging Face Hub)
+# Get detailed information about each model
+for name, info in models.items():
+    print(f"{name}: {info['description']}")
+```
+
+#### 2. Automatic Download (Recommended)
+
+```python
+from beats_trainer import ensure_checkpoint
+
+# Download default model (BEATs_iter3_plus_AS2M - best quality)
 checkpoint_path = ensure_checkpoint()
 print(f"Checkpoint ready at: {checkpoint_path}")
+
+# Download specific model
+checkpoint_path = ensure_checkpoint("openbeats")  # Faster, smaller model
+print(f"OpenBEATs checkpoint at: {checkpoint_path}")
+```
+
+#### 3. Manual Checkpoint Loading
+
+```python
+from beats_trainer import BEATsFeatureExtractor, BEATsTrainer
+
+# Method 1: Use model name (automatically downloads if needed)
+extractor = BEATsFeatureExtractor(model_path="openbeats")  # Downloads OpenBEATs automatically
+trainer = BEATsTrainer.from_esc50("./datasets", config=config)  # config.model.model_path = "openbeats"
+
+# Method 2: Load from local file path
+extractor = BEATsFeatureExtractor(model_path="/path/to/your/model.pt")
+
+# For training, specify in config
+from beats_trainer.config import Config
+config = Config()
+config.model.model_path = "/path/to/your/model.pt"  # Local file
+# OR
+config.model.model_path = "openbeats"  # Model name (auto-download)
+
+trainer = BEATsTrainer.from_directory("/path/to/dataset", config=config)
+```
+
+#### 4. Working with Custom Checkpoints
+
+```python
+# If you have your own trained model
+custom_checkpoint = "/path/to/my_trained_model.ckpt"
+
+# Use for feature extraction
+extractor = BEATsFeatureExtractor(model_path=custom_checkpoint)
+
+# Use for further training/fine-tuning
+config = Config()
+config.model.model_path = custom_checkpoint
+trainer = BEATsTrainer.from_directory("/path/to/new_dataset", config=config)
 ```
 
 ### Fine-tuning on Custom Data

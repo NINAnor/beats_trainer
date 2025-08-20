@@ -117,10 +117,21 @@ class BEATsLightningModule(pl.LightningModule):
         """Setup BEATs model with pre-trained weights."""
         # Load pretrained BEATs
         model_path = self.config.model.model_path
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"BEATs model not found at: {model_path}")
 
-        checkpoint = torch.load(model_path, map_location="cpu")
+        # Handle model names and auto-download if needed
+        if not os.path.exists(model_path):
+            # Check if it's a known model name
+            from .checkpoint_utils import BEATS_MODELS, ensure_checkpoint
+
+            if model_path in BEATS_MODELS:
+                print(f"📥 Loading pre-trained BEATs model: {model_path}")
+                model_path = ensure_checkpoint(
+                    model_path, search_first=False
+                )  # Download the specific model
+            else:
+                raise FileNotFoundError(f"BEATs model not found at: {model_path}")
+
+        checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
 
         # Handle incomplete checkpoint configurations (like OpenBEATs)
         checkpoint_cfg = checkpoint["cfg"]

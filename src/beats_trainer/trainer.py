@@ -126,7 +126,7 @@ class BEATsTrainer:
         # Trainer
         self.trainer = pl.Trainer(
             max_epochs=self.config.training.max_epochs,
-            devices="auto" if torch.cuda.is_available() else "cpu",
+            devices="auto" if torch.cuda.is_available() else 1,
             accelerator="gpu" if torch.cuda.is_available() else "cpu",
             precision=self.config.training.precision,
             callbacks=self.callbacks,
