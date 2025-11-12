@@ -73,10 +73,10 @@ notebooks = [
 beats-train = "beats_trainer.cli:main"
 
 [project.urls]
-Documentation = "https://github.com/ninanor/beats-trainer/tree/main/BEATs_explained"
-Homepage = "https://github.com/ninanor/beats-trainer"
-Issues = "https://github.com/ninanor/beats-trainer/issues"
-Repository = "https://github.com/ninanor/beats-trainer"
+Documentation = "https://github.com/NINAnor/beats_trainer/tree/main/notebooks"
+Homepage = "https://github.com/NINAnor/beats_trainer"
+Issues = "https://github.com/NINAnor/beats_trainer/issues"
+Repository = "https://github.com/NINAnor/beats_trainer"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/beats_trainer", "src/BEATs"]
@@ -84,4 +84,10 @@ packages = ["src/beats_trainer", "src/BEATs"]
 [tool.pytest.ini_options]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
 ]

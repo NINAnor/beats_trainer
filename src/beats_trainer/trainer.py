@@ -181,15 +181,6 @@ class BEATsTrainer:
         return callbacks
 
     def train(self, resume_from_checkpoint: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Train the model.
-
-        Args:
-            resume_from_checkpoint: Path to checkpoint to resume from
-
-        Returns:
-            Dictionary with training results
-        """
         print(f"Starting training for experiment: {self.config.experiment_name}")
         print(
             f"Dataset: {self.dataset_stats['total_samples']} samples, {self.dataset_stats['num_classes']} classes"
@@ -319,17 +310,8 @@ class BEATsTrainer:
     def from_directory(
         cls, data_dir: Union[str, Path], config: Optional[Config] = None, **kwargs
     ) -> "BEATsTrainer":
-        """
-        Create trainer from directory structure.
 
-        Args:
-            data_dir: Directory with class subdirectories
-            config: Training configuration
-            **kwargs: Additional arguments for BEATsTrainer
 
-        Returns:
-            BEATsTrainer instance
-        """
         dataset = load_dataset(data_dir, dataset_type="directory")
         return cls(dataset=dataset, data_dir=data_dir, config=config, **kwargs)
 
@@ -446,3 +428,170 @@ class BEATsTrainer:
 
         # Create trainer from organized directory
         return cls.from_directory(organized_dir, config=config, **kwargs)
+
+    @classmethod
+    def from_split_directories(
+        cls,
+        data_dir: Union[str, Path],
+        config: Optional[Config] = None,
+        train_dir: str = "train",
+        val_dir: str = "val",
+        test_dir: str = "test",
+        **kwargs
+    ) -> "BEATsTrainer":
+        """
+        Create trainer from pre-split train/val/test directories.
+
+        Expected directory structure:
+        data_dir/
+        ├── train/
+        │   ├── class1/
+        │   │   └── audio_files...
+        │   └── class2/
+        │       └── audio_files...
+        ├── val/
+        │   └── class_dirs...
+        └── test/
+            └── class_dirs...
+
+        Args:
+            data_dir: Root directory containing train/val/test splits
+            config: Training configuration
+            train_dir: Name of training directory (default: "train")
+            val_dir: Name of validation directory (default: "val")
+            test_dir: Name of test directory (default: "test")
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance with pre-split data
+
+        Example:
+            # Standard directory structure
+            trainer = BEATsTrainer.from_split_directories("./my_dataset")
+            trainer.train()
+
+            # Custom directory names
+            trainer = BEATsTrainer.from_split_directories(
+                "./my_dataset", 
+                train_dir="training",
+                val_dir="validation", 
+                test_dir="testing"
+            )
+        """
+        from .datasets import load_split_directories
+
+        splits = load_split_directories(
+            data_dir, train_dir=train_dir, val_dir=val_dir, test_dir=test_dir
+        )
+
+        # Create trainer with pre-split data
+        return cls._from_splits(
+            splits=splits,
+            data_dir=data_dir,
+            config=config,
+            **kwargs
+        )
+
+    @classmethod
+    def from_split_csvs(
+        cls,
+        data_dir: Union[str, Path],
+        train_csv: Union[str, Path],
+        config: Optional[Config] = None,
+        val_csv: Union[str, Path] = None,
+        test_csv: Union[str, Path] = None,
+        audio_column: str = "filename",
+        label_column: str = "category",
+        **kwargs
+    ) -> "BEATsTrainer":
+        """
+        Create trainer from pre-split CSV files.
+
+        Args:
+            data_dir: Directory containing audio files
+            train_csv: Path to training CSV file
+            config: Training configuration
+            val_csv: Path to validation CSV file (optional)
+            test_csv: Path to test CSV file (optional)
+            audio_column: Name of column containing audio filenames
+            label_column: Name of column containing labels
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance with pre-split data
+
+        Example:
+            # Basic usage
+            trainer = BEATsTrainer.from_split_csvs(
+                data_dir="./audio_files",
+                train_csv="train.csv",
+                val_csv="val.csv",
+                test_csv="test.csv"
+            )
+            trainer.train()
+
+            # Custom column names
+            trainer = BEATsTrainer.from_split_csvs(
+                data_dir="./audio_files",
+                train_csv="train.csv",
+                audio_column="audio_path",
+                label_column="class_name"
+            )
+        """
+        from .datasets import load_split_csvs
+
+        splits = load_split_csvs(
+            data_dir=data_dir,
+            train_csv=train_csv,
+            val_csv=val_csv,
+            test_csv=test_csv,
+            audio_column=audio_column,
+            label_column=label_column
+        )
+
+        # Create trainer with pre-split data
+        return cls._from_splits(
+            splits=splits,
+            data_dir=data_dir,
+            config=config,
+            **kwargs
+        )
+
+    @classmethod
+    def _from_splits(
+        cls,
+        splits: Dict[str, pd.DataFrame],
+        data_dir: Union[str, Path],
+        config: Optional[Config] = None,
+        **kwargs
+    ) -> "BEATsTrainer":
+        """
+        Internal method to create trainer from pre-split dataframes.
+
+        Args:
+            splits: Dictionary containing 'train', 'val', 'test' DataFrames
+            data_dir: Directory containing audio files
+            config: Training configuration
+            **kwargs: Additional arguments for BEATsTrainer
+
+        Returns:
+            BEATsTrainer instance with pre-split data
+        """
+        # Use dummy dataset for main dataset parameter (not used with pre_split=True)
+        dummy_dataset = splits["train"].copy() if not splits["train"].empty else pd.DataFrame()
+
+        # Create trainer instance
+        trainer = cls(dataset=dummy_dataset, data_dir=data_dir, config=config, **kwargs)
+
+        # Override data module with pre-split version
+        trainer.data_module = BEATsDataModule(
+            dataset=dummy_dataset,
+            data_dir=Path(data_dir),
+            config=trainer.config.data,
+            pre_split=True,
+            train_df=splits["train"],
+            val_df=splits["val"],
+            test_df=splits["test"]
+        )
+
+        return trainer

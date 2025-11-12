@@ -63,18 +63,26 @@ class AudioDataset(Dataset):
 
 
 class BEATsDataModule(pl.LightningDataModule):
-    """PyTorch Lightning data module for BEATs training."""
-
     def __init__(
         self,
         dataset: pd.DataFrame,
         data_dir: Path,
         config: DataConfig,
+        pre_split: bool = False,
+        train_df: Optional[pd.DataFrame] = None,
+        val_df: Optional[pd.DataFrame] = None,
+        test_df: Optional[pd.DataFrame] = None,
     ):
         super().__init__()
         self.dataset = dataset
         self.data_dir = data_dir
         self.config = config
+        self.pre_split = pre_split
+        
+        # For pre-split datasets
+        self.train_df = train_df
+        self.val_df = val_df
+        self.test_df = test_df
 
         self.train_dataset = None
         self.val_dataset = None
@@ -82,6 +90,35 @@ class BEATsDataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         """Setup train/val/test datasets."""
+        if self.pre_split:
+            # Use pre-provided splits
+            self._setup_pre_split()
+        else:
+            # Perform automatic splitting
+            self._setup_auto_split()
+
+        # Store number of classes
+        self.num_classes = self.train_dataset.num_classes
+
+    def _setup_pre_split(self):
+        """Setup datasets from pre-split dataframes."""
+        if self.train_df is not None:
+            self.train_dataset = AudioDataset(
+                self.train_df, self.data_dir, self.config.sample_rate
+            )
+
+        if self.val_df is not None and len(self.val_df) > 0:
+            self.val_dataset = AudioDataset(
+                self.val_df, self.data_dir, self.config.sample_rate
+            )
+
+        if self.test_df is not None and len(self.test_df) > 0:
+            self.test_dataset = AudioDataset(
+                self.test_df, self.data_dir, self.config.sample_rate
+            )
+
+    def _setup_auto_split(self):
+        """Setup datasets with automatic splitting."""
         # Shuffle dataset
         dataset_shuffled = self.dataset.sample(frac=1, random_state=42).reset_index(
             drop=True
@@ -120,9 +157,6 @@ class BEATsDataModule(pl.LightningDataModule):
             self.test_dataset = AudioDataset(
                 test, self.data_dir, self.config.sample_rate
             )
-
-        # Store number of classes
-        self.num_classes = self.train_dataset.num_classes
 
     def train_dataloader(self):
         return DataLoader(

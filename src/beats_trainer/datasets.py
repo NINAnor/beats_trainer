@@ -531,3 +531,157 @@ DATASET_DOWNLOADERS = {
     "esc50": download_and_organize_esc50,
     "urbansound8k": download_urbansound8k,  # Manual download only
 }
+
+
+def load_split_directories(
+    data_dir: Union[str, Path],
+    train_dir: str = "train",
+    val_dir: str = "val", 
+    test_dir: str = "test",
+    audio_extensions: List[str] = None
+) -> Dict[str, pd.DataFrame]:
+    """
+    Load pre-split dataset from train/val/test directories.
+    
+    Expected structure:
+    data_dir/
+    ├── train/
+    │   ├── class1/
+    │   │   ├── audio1.wav
+    │   │   └── audio2.wav
+    │   └── class2/
+    │       └── audio3.wav
+    ├── val/
+    │   ├── class1/
+    │   │   └── audio4.wav
+    │   └── class2/
+    │       └── audio5.wav
+    └── test/
+        ├── class1/
+        │   └── audio6.wav
+        └── class2/
+            └── audio7.wav
+            
+    Args:
+        data_dir: Root directory containing train/val/test splits
+        train_dir: Name of training directory (default: "train")
+        val_dir: Name of validation directory (default: "val") 
+        test_dir: Name of test directory (default: "test")
+        audio_extensions: List of valid audio extensions
+        
+    Returns:
+        Dictionary with keys 'train', 'val', 'test' containing DataFrames.
+        Missing splits will have empty DataFrames.
+    """
+    if audio_extensions is None:
+        audio_extensions = [".wav", ".mp3", ".flac", ".m4a"]
+        
+    data_dir = Path(data_dir)
+    if not data_dir.exists():
+        raise FileNotFoundError(f"Data directory not found: {data_dir}")
+        
+    splits = {}
+    
+    # Load each split directory
+    for split_name, split_dir_name in [
+        ("train", train_dir), 
+        ("val", val_dir), 
+        ("test", test_dir)
+    ]:
+        split_path = data_dir / split_dir_name
+        
+        if split_path.exists() and split_path.is_dir():
+            try:
+                # Scan the split directory
+                df = scan_directory_dataset(split_path, audio_extensions)
+                # Update file paths to include split directory
+                df["filename"] = df["filename"].apply(
+                    lambda x: f"{split_dir_name}/{x}"
+                )
+                splits[split_name] = df
+                print(f"✓ Loaded {split_name} split: {len(df)} files")
+            except (FileNotFoundError, ValueError) as e:
+                print(f"⚠️  {split_name} split not found or empty: {e}")
+                splits[split_name] = pd.DataFrame(columns=["filename", "category"])
+        else:
+            print(f"⚠️  {split_name} directory not found: {split_path}")
+            splits[split_name] = pd.DataFrame(columns=["filename", "category"])
+    
+    # Validate that at least training split exists
+    if splits["train"].empty:
+        raise ValueError(f"Training split is required but not found in {data_dir / train_dir}")
+    
+    return splits
+
+
+def load_split_csvs(
+    data_dir: Union[str, Path],
+    train_csv: Union[str, Path],
+    val_csv: Union[str, Path] = None,
+    test_csv: Union[str, Path] = None,
+    audio_column: str = "filename",
+    label_column: str = "category"
+) -> Dict[str, pd.DataFrame]:
+    """
+    Load pre-split dataset from separate CSV files.
+    
+    Args:
+        data_dir: Directory containing audio files
+        train_csv: Path to training CSV file
+        val_csv: Path to validation CSV file (optional)
+        test_csv: Path to test CSV file (optional)
+        audio_column: Name of column containing audio filenames
+        label_column: Name of column containing labels
+        
+    Returns:
+        Dictionary with keys 'train', 'val', 'test' containing DataFrames.
+        Missing splits will have empty DataFrames.
+    """
+    data_dir = Path(data_dir)
+    splits = {}
+    
+    # Load training CSV (required)
+    train_csv = Path(train_csv)
+    if not train_csv.exists():
+        raise FileNotFoundError(f"Training CSV not found: {train_csv}")
+    
+    train_df = pd.read_csv(train_csv)
+    if audio_column not in train_df.columns or label_column not in train_df.columns:
+        raise ValueError(f"Required columns [{audio_column}, {label_column}] not found in {train_csv}")
+    
+    splits["train"] = train_df[[audio_column, label_column]].rename(
+        columns={audio_column: "filename", label_column: "category"}
+    )
+    print(f"✓ Loaded train split: {len(splits['train'])} files")
+    
+    # Load validation CSV (optional)
+    if val_csv:
+        val_csv = Path(val_csv)
+        if val_csv.exists():
+            val_df = pd.read_csv(val_csv)
+            splits["val"] = val_df[[audio_column, label_column]].rename(
+                columns={audio_column: "filename", label_column: "category"}
+            )
+            print(f"✓ Loaded val split: {len(splits['val'])} files")
+        else:
+            print(f"⚠️  Validation CSV not found: {val_csv}")
+            splits["val"] = pd.DataFrame(columns=["filename", "category"])
+    else:
+        splits["val"] = pd.DataFrame(columns=["filename", "category"])
+    
+    # Load test CSV (optional)  
+    if test_csv:
+        test_csv = Path(test_csv)
+        if test_csv.exists():
+            test_df = pd.read_csv(test_csv)
+            splits["test"] = test_df[[audio_column, label_column]].rename(
+                columns={audio_column: "filename", label_column: "category"}
+            )
+            print(f"✓ Loaded test split: {len(splits['test'])} files")
+        else:
+            print(f"⚠️  Test CSV not found: {test_csv}")
+            splits["test"] = pd.DataFrame(columns=["filename", "category"])
+    else:
+        splits["test"] = pd.DataFrame(columns=["filename", "category"])
+    
+    return splits

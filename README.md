@@ -153,6 +153,68 @@ trainer = BEATsTrainer.from_directory("/path/to/dataset", config=config)
 results = trainer.train()
 ```
 
+#### Pre-Split Train/Val/Test Datasets
+
+If your dataset is already split into separate folders (or CSVs) for train, validation, and test, you can use these convenience methods:
+
+```
+your_dataset/
+├── train/
+│   ├── class1/
+│   │   ├── audio1.wav
+│   │   └── audio2.wav
+│   └── class2/
+│       ├── audio3.wav
+│       └── audio4.wav
+├── val/
+│   ├── class1/
+│   └── class2/
+└── test/
+    ├── class1/
+    └── class2/
+```
+
+```python
+from beats_trainer import BEATsTrainer
+from beats_trainer.config import Config
+
+config = Config()
+trainer = BEATsTrainer.from_split_directories(
+    train_dir="your_dataset/train",
+    val_dir="your_dataset/val",
+    test_dir="your_dataset/test",
+    config=config,
+)
+trainer.train()
+```
+
+#### From CSV Files
+Each CSV should have columns for audio file paths and labels:
+
+**train.csv, val.csv, test.csv:**
+```csv
+filename,category
+audio/sample1.wav,bird
+audio/sample2.mp3,dog
+audio/sample3.flac,cat
+```
+
+```python
+from beats_trainer import BEATsTrainer
+from beats_trainer.config import Config
+
+config = Config()
+trainer = BEATsTrainer.from_split_csvs(
+    train_csv="train.csv",
+    val_csv="val.csv",
+    test_csv="test.csv",
+    audio_column="filename",
+    label_column="category",
+    config=config,
+)
+trainer.train()
+```
+
 ### ESC-50 Dataset (Auto-Download & Train)
 
 Get started immediately with the ESC-50 environmental sound classification dataset:
