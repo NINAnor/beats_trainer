@@ -5,8 +5,8 @@ __author__ = "Benjamin Cretois"
 __email__ = "benjamin.cretois@nina.no"
 
 # Core feature extraction (always available)
-from .feature_extractor import BEATsFeatureExtractor
-from .checkpoint_utils import (
+from .core.feature_extractor import BEATsFeatureExtractor
+from .utils.checkpoints import (
     ensure_checkpoint,
     list_available_models,
     download_beats_checkpoint,
@@ -17,8 +17,8 @@ from .checkpoint_utils import (
 
 # Training components (optional - only if dependencies are available)
 try:
-    from .trainer import BEATsTrainer
-    from .config import Config
+    from .training.trainer import BEATsTrainer
+    from .core.config import Config
 
     _TRAINING_AVAILABLE = True
 except ImportError:

@@ -107,8 +107,8 @@ class TestLibraryUsage:
         """Test that library modules can be imported correctly."""
         # Test core imports
         try:
-            from beats_trainer.feature_extractor import BEATsFeatureExtractor
-            from beats_trainer.checkpoint_utils import (
+            from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
+            from beats_trainer.utils.checkpoints import (
                 find_checkpoint,
                 ensure_checkpoint,
                 list_available_models,
@@ -125,8 +125,8 @@ class TestLibraryUsage:
 
     def test_library_workflow(self, temp_dir):
         """Test typical library usage workflow."""
-        from beats_trainer import checkpoint_utils
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.utils import checkpoints as checkpoint_utils
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
         # Step 1: List available models
         models = checkpoint_utils.list_available_models()
@@ -134,7 +134,7 @@ class TestLibraryUsage:
         assert len(models) > 0
 
         # Step 2: Try to find or ensure checkpoint (mocked)
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [temp_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [temp_dir]):
             # Create mock checkpoint
             checkpoint_file = temp_dir / "BEATs_iter3_plus_AS2M.pt"
             import torch
@@ -159,8 +159,8 @@ class TestLibraryUsage:
 
     def test_error_handling_patterns(self):
         """Test that library handles errors gracefully."""
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
-        from beats_trainer import checkpoint_utils
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.utils import checkpoints as checkpoint_utils
 
         # Test invalid model path
         with pytest.raises(FileNotFoundError):
@@ -178,7 +178,7 @@ class TestLibraryUsage:
 
     def test_configuration_validation(self):
         """Test that configuration parameters are validated properly."""
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
         # Test valid configurations
         valid_configs = [
@@ -324,7 +324,7 @@ class TestPerformanceAndScaling:
         cpu_percent_before = psutil.cpu_percent(interval=1)
 
         # Perform basic operations
-        from beats_trainer import checkpoint_utils
+        from beats_trainer.utils import checkpoints as checkpoint_utils
 
         checkpoint_utils.list_available_models()
         checkpoint_utils.find_checkpoint()

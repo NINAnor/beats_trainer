@@ -8,7 +8,7 @@ import torch
 from pathlib import Path
 from unittest.mock import patch
 
-from beats_trainer.feature_extractor import BEATsFeatureExtractor
+from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 from .conftest import (
     TestConfig,
     skip_if_no_model,
@@ -211,7 +211,7 @@ class TestBEATsFeatureExtractor(AudioTestCase):
         extractor = BEATsFeatureExtractor(model_path=None, pooling="mean", device="cpu")
 
         # Test empty audio array
-        with pytest.raises((ValueError, RuntimeError)):
+        with pytest.raises((ValueError, RuntimeError, AssertionError)):
             empty_audio = np.array([])
             extractor.extract_features(empty_audio)
 

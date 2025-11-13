@@ -16,8 +16,8 @@ def test_imports():
 
     required_modules = [
         "beats_trainer",
-        "beats_trainer.feature_extractor",
-        "beats_trainer.checkpoint_utils",
+        "beats_trainer.core.feature_extractor",
+        "beats_trainer.utils.checkpoints",
     ]
 
     optional_modules = [

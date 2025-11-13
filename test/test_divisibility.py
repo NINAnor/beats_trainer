@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 sys.path.append(".")
-from beats_trainer.feature_extractor import BEATsFeatureExtractor
+from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
 
 def test_divisibility_requirement():

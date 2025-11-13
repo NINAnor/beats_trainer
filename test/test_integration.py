@@ -21,8 +21,8 @@ class TestEndToEndWorkflow:
     @skip_if_no_model()
     def test_complete_feature_extraction_workflow(self, temp_dir):
         """Test complete workflow from checkpoint to features."""
-        from beats_trainer import checkpoint_utils
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.utils import checkpoints as checkpoint_utils
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
         # Step 1: Ensure checkpoint is available
         checkpoint_path = checkpoint_utils.ensure_checkpoint()
@@ -65,16 +65,16 @@ class TestEndToEndWorkflow:
 
     def test_automatic_checkpoint_workflow(self, temp_dir):
         """Test workflow with automatic checkpoint management."""
-        from beats_trainer import checkpoint_utils
+        from beats_trainer.utils import checkpoints as checkpoint_utils
 
         # Mock checkpoint directories to use our temp directory
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [temp_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [temp_dir]):
             # Initially no checkpoint should exist
             assert checkpoint_utils.find_checkpoint() is None
 
             # Mock download process
             with patch(
-                "beats_trainer.checkpoint_utils.download_beats_checkpoint"
+                "beats_trainer.utils.checkpoints.download_beats_checkpoint"
             ) as mock_download:
                 # Create mock downloaded checkpoint
                 checkpoint_file = temp_dir / "BEATs_iter3_plus_AS2M.pt"
@@ -106,7 +106,7 @@ class TestEndToEndWorkflow:
 
     def test_multi_model_comparison_workflow(self, temp_dir):
         """Test workflow for comparing multiple model configurations."""
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
         # Create mock checkpoints
         checkpoint_dir = temp_dir / "checkpoints"
@@ -161,7 +161,7 @@ class TestEndToEndWorkflow:
 
         # Mock feature extraction
         with patch(
-            "beats_trainer.feature_extractor.BEATsFeatureExtractor"
+            "beats_trainer.core.feature_extractor.BEATsFeatureExtractor"
         ) as MockExtractor:
             mock_extractor = MagicMock()
             MockExtractor.return_value = mock_extractor
@@ -171,7 +171,7 @@ class TestEndToEndWorkflow:
             mock_extractor.extract_from_files.return_value = mock_features
 
             # Initialize extractor
-            from beats_trainer.feature_extractor import BEATsFeatureExtractor
+            from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
             extractor = BEATsFeatureExtractor(
                 model_path=None, pooling="mean", device="cpu"
@@ -227,18 +227,18 @@ class TestEndToEndWorkflow:
 
     def test_error_recovery_workflow(self, temp_dir):
         """Test error recovery in workflows."""
-        from beats_trainer import checkpoint_utils
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.utils import checkpoints as checkpoint_utils
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
 
         # Test 1: Recovery from missing checkpoint
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [temp_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [temp_dir]):
             # No checkpoint exists
             checkpoint = checkpoint_utils.find_checkpoint()
             assert checkpoint is None
 
             # Try to ensure checkpoint (will try to download)
             with patch(
-                "beats_trainer.checkpoint_utils.download_beats_checkpoint"
+                "beats_trainer.utils.checkpoints.download_beats_checkpoint"
             ) as mock_download:
                 # Mock download failure
                 mock_download.return_value = None

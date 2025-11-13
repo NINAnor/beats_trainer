@@ -319,38 +319,6 @@ def organize_esc50_for_training(
     return output_dir
 
 
-def download_and_organize_esc50(
-    data_dir: Union[str, Path], force_download: bool = False
-) -> Path:
-    """
-    Download and organize ESC-50 dataset in one step.
-
-    Args:
-        data_dir: Directory where to download and organize the dataset
-        force_download: If True, re-download even if dataset exists
-
-    Returns:
-        Path to organized dataset directory ready for .from_directory()
-    """
-    data_dir = Path(data_dir)
-
-    # Check if organized dataset already exists
-    organized_dir = data_dir / "ESC50_organized"
-    if organized_dir.exists() and not force_download:
-        class_dirs = [d for d in organized_dir.iterdir() if d.is_dir()]
-        if len(class_dirs) == 50:  # ESC-50 has 50 classes
-            print(f"ESC-50 organized dataset already exists at {organized_dir}")
-            return organized_dir
-
-    # Download raw dataset
-    raw_dir = download_esc50(data_dir, force_download)
-
-    # Organize for training
-    organized_dir = organize_esc50_for_training(raw_dir, organized_dir)
-
-    return organized_dir
-
-
 def load_esc50(data_dir: Union[str, Path], auto_download: bool = True) -> pd.DataFrame:
     """
     Load ESC-50 dataset.
@@ -381,7 +349,8 @@ def load_esc50(data_dir: Union[str, Path], auto_download: bool = True) -> pd.Dat
     # Auto-download if requested
     if auto_download:
         print("ESC-50 dataset not found. Downloading and organizing...")
-        organized_dir = download_and_organize_esc50(data_dir)
+        raw_dir = download_esc50(data_dir)
+        organized_dir = organize_esc50_for_training(raw_dir)
         return scan_directory_dataset(organized_dir)
     else:
         raise FileNotFoundError(
@@ -391,145 +360,16 @@ def load_esc50(data_dir: Union[str, Path], auto_download: bool = True) -> pd.Dat
         )
 
 
-def download_urbansound8k(data_dir: Union[str, Path]) -> None:
-    """
-    UrbanSound8K requires manual download due to licensing.
-    Provide instructions for manual download.
-    """
-    print("UrbanSound8K Dataset Download Instructions:")
-    print("=" * 50)
-    print("UrbanSound8K requires manual download due to licensing requirements.")
-    print("Please follow these steps:")
-    print("1. Visit: https://urbansounddataset.weebly.com/urbansound8k.html")
-    print("2. Fill out the form to request download access")
-    print("3. Download the dataset and extract to:", data_dir)
-    print("4. The directory structure should be:")
-    print("   UrbanSound8K/")
-    print("   ├── metadata/")
-    print("   │   └── UrbanSound8K.csv")
-    print("   └── audio/")
-    print("       ├── fold1/")
-    print("       ├── fold2/")
-    print("       └── ...")
-    raise FileNotFoundError("UrbanSound8K requires manual download")
-
-
-def organize_urbansound8k_for_training(
-    us8k_dir: Union[str, Path], output_dir: Union[str, Path] = None
-) -> Path:
-    """
-    Organize UrbanSound8K dataset into class folders for .from_directory() usage.
-
-    Args:
-        us8k_dir: Path to UrbanSound8K directory
-        output_dir: Output directory for organized dataset (default: us8k_dir_parent/UrbanSound8K_organized)
-
-    Returns:
-        Path to organized dataset directory
-    """
-    us8k_dir = Path(us8k_dir)
-
-    if output_dir is None:
-        output_dir = us8k_dir.parent / "UrbanSound8K_organized"
-    else:
-        output_dir = Path(output_dir)
-
-    # Read metadata
-    meta_file = us8k_dir / "metadata" / "UrbanSound8K.csv"
-    if not meta_file.exists():
-        raise FileNotFoundError(f"UrbanSound8K metadata not found: {meta_file}")
-
-    df = pd.read_csv(meta_file)
-
-    # Create output directory
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    print(f"Organizing UrbanSound8K dataset to {output_dir}")
-
-    # Group by class and copy files
-    for class_name, group in tqdm(df.groupby("class"), desc="Organizing classes"):
-        # Create class directory
-        class_dir = output_dir / class_name.replace(
-            " ", "_"
-        )  # Replace spaces with underscores
-        class_dir.mkdir(exist_ok=True)
-
-        # Copy audio files
-        for _, row in group.iterrows():
-            src_file = (
-                us8k_dir / "audio" / f"fold{row['fold']}" / row["slice_file_name"]
-            )
-            dst_file = class_dir / row["slice_file_name"]
-
-            if src_file.exists():
-                if not dst_file.exists():  # Don't overwrite existing files
-                    shutil.copy2(src_file, dst_file)
-            else:
-                warnings.warn(f"Source file not found: {src_file}")
-
-    # Print statistics
-    class_dirs = [d for d in output_dir.iterdir() if d.is_dir()]
-    total_files = sum(len(list(d.glob("*.wav"))) for d in class_dirs)
-
-    print("✅ UrbanSound8K organized successfully!")
-    print(f"   📁 Classes: {len(class_dirs)}")
-    print(f"   🎵 Audio files: {total_files}")
-    print(f"   📍 Location: {output_dir}")
-
-    return output_dir
-
-
-def load_urbansound8k(
-    data_dir: Union[str, Path], auto_organize: bool = True
-) -> pd.DataFrame:
-    """
-    Load UrbanSound8K dataset.
-
-    Args:
-        data_dir: Root directory containing UrbanSound8K
-        auto_organize: If True, automatically organize if raw dataset found
-
-    Returns:
-        DataFrame for organized dataset ready for .from_directory()
-    """
-    data_dir = Path(data_dir)
-
-    # Try to find organized dataset first
-    organized_dir = data_dir / "UrbanSound8K_organized"
-    if organized_dir.exists():
-        return scan_directory_dataset(organized_dir)
-
-    # Try to find raw UrbanSound8K dataset
-    raw_dir = data_dir / "UrbanSound8K"
-    if raw_dir.exists():
-        csv_path = raw_dir / "metadata" / "UrbanSound8K.csv"
-        if csv_path.exists() and auto_organize:
-            # Organize the raw dataset
-            organized_dir = organize_urbansound8k_for_training(raw_dir)
-            return scan_directory_dataset(organized_dir)
-        elif csv_path.exists():
-            # Return the original CSV-based dataset
-            df = pd.read_csv(csv_path)
-            df["filename"] = df.apply(
-                lambda x: f"fold{x['fold']}/{x['slice_file_name']}", axis=1
-            )
-            df["category"] = df["class"]
-            return df[["filename", "category"]]
-
-    # Dataset not found, provide download instructions
-    download_urbansound8k(data_dir)
 
 
 # Registry of preset loaders
 PRESET_LOADERS = {
     "esc50": load_esc50,
-    "urbansound8k": load_urbansound8k,
 }
 
-# Dataset download functions
+# Dataset download functions  
 DATASET_DOWNLOADERS = {
-    "esc50": download_and_organize_esc50,
-    "urbansound8k": download_urbansound8k,  # Manual download only
+    "esc50": load_esc50,  # Uses auto_download=True by default
 }
 
 

@@ -182,7 +182,7 @@ def skip_if_no_model():
 def _model_available() -> bool:
     """Check if BEATs model is available for testing."""
     try:
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
 
         checkpoint = find_checkpoint()
         return checkpoint is not None

@@ -6,7 +6,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from beats_trainer.checkpoint_utils import (
+from beats_trainer.utils.checkpoints import (
     list_available_models,
     find_checkpoint,
     download_beats_checkpoint,
@@ -62,7 +62,7 @@ class TestCheckpointUtils:
         checkpoint_file.write_text("mock checkpoint data")
 
         # Mock the default checkpoint directories to include our temp dir
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             found_checkpoint = find_checkpoint()
 
             assert found_checkpoint is not None
@@ -75,7 +75,7 @@ class TestCheckpointUtils:
         empty_dir = temp_dir / "empty"
         empty_dir.mkdir()
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [empty_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [empty_dir]):
             found_checkpoint = find_checkpoint()
             assert found_checkpoint is None
 
@@ -90,7 +90,7 @@ class TestCheckpointUtils:
         checkpoint1.write_text("mock data 1")
         checkpoint2.write_text("mock data 2")
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             # Find specific model
             found_checkpoint = find_checkpoint("other_model")
             assert found_checkpoint.name == "other_model.pt"
@@ -101,7 +101,7 @@ class TestCheckpointUtils:
 
     @patch("urllib.request.urlopen")
     @patch(
-        "beats_trainer.checkpoint_utils.CHECKPOINT_DIRS",
+        "beats_trainer.utils.checkpoints.CHECKPOINT_DIRS",
         [Path("/tmp/test_checkpoints")],
     )
     def test_download_beats_checkpoint_success(self, mock_urlopen, temp_dir):
@@ -120,7 +120,7 @@ class TestCheckpointUtils:
         checkpoint_dir = temp_dir / "checkpoints"
         checkpoint_dir.mkdir(exist_ok=True)
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             # Download checkpoint (force download to test actual download)
             checkpoint_path = download_beats_checkpoint(
                 "BEATs_iter3_plus_AS2M",
@@ -210,14 +210,14 @@ class TestCheckpointUtils:
 
         torch.save({"model": "data"}, checkpoint_file)
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             result = ensure_checkpoint()
 
             assert result is not None
             assert result.exists()
             assert result == checkpoint_file
 
-    @patch("beats_trainer.checkpoint_utils.download_beats_checkpoint")
+    @patch("beats_trainer.utils.checkpoints.download_beats_checkpoint")
     def test_ensure_checkpoint_download(self, mock_download, temp_dir):
         """Test ensure_checkpoint when download is needed."""
         # Setup mock download
@@ -227,18 +227,18 @@ class TestCheckpointUtils:
 
         mock_download.return_value = checkpoint_file
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             # Ensure no existing checkpoints
             with patch(
-                "beats_trainer.checkpoint_utils.find_checkpoint", return_value=None
+                "beats_trainer.utils.checkpoints.find_checkpoint", return_value=None
             ):
                 result = ensure_checkpoint()
 
                 assert result is not None
                 mock_download.assert_called_once()
 
-    @patch("beats_trainer.checkpoint_utils.download_beats_checkpoint")
-    @patch("beats_trainer.checkpoint_utils.find_checkpoint")
+    @patch("beats_trainer.utils.checkpoints.download_beats_checkpoint")
+    @patch("beats_trainer.utils.checkpoints.find_checkpoint")
     def test_ensure_checkpoint_download_failure(self, mock_find, mock_download):
         """Test ensure_checkpoint when download fails."""
         mock_find.return_value = None  # No existing checkpoint
@@ -258,7 +258,7 @@ class TestCheckpointUtils:
 
         torch.save({"model": "data"}, specific_checkpoint)
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             result = ensure_checkpoint("specific_model")
 
             assert result is not None
@@ -279,7 +279,7 @@ class TestCheckpointUtils:
         checkpoint2.write_text("checkpoint in dir2")
 
         # dir1 should have priority (first in list)
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [dir1, dir2]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [dir1, dir2]):
             found = find_checkpoint()
 
             assert found == checkpoint1
@@ -294,13 +294,13 @@ class TestCheckpointIntegration:
         checkpoint_dir = temp_dir / "checkpoints"
         checkpoint_dir.mkdir()
 
-        with patch("beats_trainer.checkpoint_utils.CHECKPOINT_DIRS", [checkpoint_dir]):
+        with patch("beats_trainer.utils.checkpoints.CHECKPOINT_DIRS", [checkpoint_dir]):
             # Step 1: No checkpoint exists initially
             assert find_checkpoint() is None
 
             # Step 2: Mock download
             with patch(
-                "beats_trainer.checkpoint_utils.download_beats_checkpoint"
+                "beats_trainer.utils.checkpoints.download_beats_checkpoint"
             ) as mock_download:
                 # Create mock downloaded checkpoint
                 checkpoint_file = checkpoint_dir / "BEATs_iter3_plus_AS2M.pt"
@@ -339,7 +339,7 @@ class TestCheckpointIntegration:
             assert info1 == info2
 
             # Required fields should be present
-            assert "url" in info1
+            assert "hf_repo" in info1
             assert "description" in info1
             assert "size_mb" in info1
 

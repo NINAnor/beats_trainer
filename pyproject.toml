@@ -2,6 +2,12 @@
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
+[dependency-groups]
+dev = [
+  "build>=1.2.2.post1",
+  "twine>=6.1.0"
+]
+
 [project]
 authors = [
   {name = "Benjamin Cretois", email = "benjamin.cretois@nina.no"}
@@ -84,10 +90,4 @@ packages = ["src/beats_trainer", "src/BEATs"]
 [tool.pytest.ini_options]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-]
-
-[dependency-groups]
-dev = [
-    "build>=1.2.2.post1",
-    "twine>=6.1.0",
 ]

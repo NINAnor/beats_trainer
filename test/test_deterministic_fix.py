@@ -7,7 +7,7 @@ import tempfile
 import os
 from pathlib import Path
 from beats_trainer import BEATsTrainer
-from beats_trainer.config import Config
+from beats_trainer.core.config import Config
 
 
 def create_test_dataset():

@@ -11,8 +11,8 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from beats_trainer.config import Config, ModelConfig, DataConfig, TrainingConfig
-from beats_trainer.model import BEATsLightningModule
+from beats_trainer.core.config import Config, ModelConfig, DataConfig, TrainingConfig
+from beats_trainer.core.model import BEATsLightningModule
 
 
 class TestTrainFromScratch:

@@ -23,7 +23,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_loading(self):
         """Test BEATs model can be loaded successfully."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -51,7 +51,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_checkpoint_parameter_loading(self):
         """Test that model parameters match checkpoint parameters after loading."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -133,7 +133,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_inference(self):
         """Test BEATs model inference."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -166,7 +166,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_different_input_lengths(self):
         """Test model with different input lengths."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -211,7 +211,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_batch_processing(self):
         """Test model with batch processing."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -246,7 +246,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_gpu_inference(self):
         """Test model inference on GPU."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -274,7 +274,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_deterministic_output(self):
         """Test that model produces deterministic outputs."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -306,7 +306,7 @@ class TestBEATsModel(AudioTestCase):
     @skip_if_no_model()
     def test_model_gradient_flow(self):
         """Test that gradients flow properly through the model."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()
@@ -395,8 +395,8 @@ class TestModelIntegration:
     @skip_if_no_model()
     def test_model_feature_extractor_integration(self):
         """Test integration between raw model and feature extractor."""
-        from beats_trainer.feature_extractor import BEATsFeatureExtractor
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.core.feature_extractor import BEATsFeatureExtractor
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         # Test both approaches produce similar results
@@ -440,7 +440,7 @@ class TestModelIntegration:
     @skip_if_no_model()
     def test_model_consistency_across_devices(self):
         """Test model produces consistent results across different devices."""
-        from beats_trainer.checkpoint_utils import find_checkpoint
+        from beats_trainer.utils.checkpoints import find_checkpoint
         from BEATs import BEATs, BEATsConfig
 
         checkpoint_path = find_checkpoint()

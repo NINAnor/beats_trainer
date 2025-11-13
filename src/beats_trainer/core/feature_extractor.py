@@ -20,7 +20,7 @@ except ImportError:
     from BEATs.BEATs import BEATs, BEATsConfig
 
 # Import checkpoint utilities
-from .checkpoint_utils import ensure_checkpoint
+from ..utils.checkpoints import ensure_checkpoint
 
 
 class BEATsFeatureExtractor:
@@ -82,6 +82,11 @@ class BEATsFeatureExtractor:
         self.model_path = Path(model_path)
         self.layer = layer
         self.pooling = pooling.lower()
+        
+        # Validate pooling method
+        valid_pooling = {"mean", "max", "first", "last", "cls", "none"}
+        if self.pooling not in valid_pooling:
+            raise ValueError(f"Unknown pooling method: {self.pooling}. Valid options: {valid_pooling}")
 
         if device is None or device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
