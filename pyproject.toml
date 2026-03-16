@@ -41,7 +41,7 @@ dependencies = [
   "huggingface-hub>=0.17.0",
   "dvc[webdav]>=3.0.0",
   "torch>=2.5.1,<2.7.0",
-  "torchaudio>=2.5.1,<2.7.0",
+  "torchaudio>=2.5.1",
   "torchvision>=0.20.1,<0.22.0",
   "tqdm>=4.60.0"
 ]
